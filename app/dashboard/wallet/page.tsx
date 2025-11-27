@@ -113,23 +113,34 @@ export default function WalletPage() {
           console.error("[v0] Payment failed:", result.error)
           console.error("[v0] PayHero response details:", result.details)
 
-          const errorMessage = result.error || "Unknown error occurred"
+          let userFriendlyMessage = result.error || "Unknown error occurred"
 
-          // Display the full error message from PayHero
+          // Check for specific PayHero error messages
+          if (result.details?.error_message) {
+            const errorMsg = result.details.error_message.toLowerCase()
+
+            if (errorMsg.includes("insufficient balance")) {
+              userFriendlyMessage =
+                "Merchant account has insufficient balance. Please contact support or try again later."
+            } else {
+              userFriendlyMessage = result.details.error_message
+            }
+          }
+
           toast({
             title: "Payment Failed",
-            description: errorMessage,
+            description: userFriendlyMessage,
             variant: "destructive",
-            duration: 10000, // Show for 10 seconds
+            duration: 10000,
           })
 
-          // Also alert the detailed error for debugging including PayHero response
-          if (result.details) {
-            alert(
-              `PayHero Error:\n${errorMessage}\n\nPayHero Response:\n${JSON.stringify(result.details, null, 2)}\n\nCheck browser console for more details.`,
-            )
-          } else {
-            alert(`PayHero Error:\n${errorMessage}\n\nCheck browser console for more details.`)
+          // Only show detailed alert for non-balance errors
+          if (!result.details?.error_message?.toLowerCase().includes("insufficient balance")) {
+            if (result.details) {
+              alert(
+                `PayHero Error:\n${userFriendlyMessage}\n\nPayHero Response:\n${JSON.stringify(result.details, null, 2)}`,
+              )
+            }
           }
         }
       } catch (error: any) {

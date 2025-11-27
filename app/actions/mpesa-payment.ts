@@ -180,6 +180,13 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       })
 
       let detailedError = result.message || result.error || "Payment initiation failed"
+      const errorCode = result.error_code || result.code
+      const errorMessage = result.error_message || result.message
+
+      // Check for specific error patterns
+      if (errorMessage) {
+        detailedError = errorMessage
+      }
 
       // Check for validation errors array
       if (result.errors && Array.isArray(result.errors)) {
@@ -197,6 +204,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       }
 
       console.error("[v0] Detailed error message:", detailedError)
+      console.error("[v0] Error code:", errorCode)
 
       await supabaseAdmin
         .from("transactions")
@@ -205,6 +213,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
           payment_details: {
             ...transaction.payment_details,
             error: detailedError,
+            error_code: errorCode,
             payhero_response: result,
             payhero_status: response.status,
           },
@@ -214,7 +223,12 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       return {
         success: false,
         error: `PayHero Error (${response.status}): ${detailedError}`,
-        details: result, // Return full PayHero response for debugging
+        details: {
+          error_code: errorCode,
+          error_message: errorMessage || detailedError,
+          status_code: response.status,
+          full_response: result,
+        },
       }
     }
 
