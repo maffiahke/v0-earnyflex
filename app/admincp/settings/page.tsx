@@ -319,8 +319,36 @@ export default function AdminSettingsPage() {
 
           <TabsContent value="payment">
             <div className="space-y-4">
+              {/* PayHero API Configuration Section */}
               <Card className="glass-card p-6">
-                <h2 className="text-xl font-semibold mb-4">M-Pesa Details</h2>
+                <h2 className="text-xl font-semibold mb-4">PayHero API Configuration (M-Pesa STK Push)</h2>
+                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg space-y-3">
+                  <p className="text-sm">
+                    <strong>Automatic M-Pesa payments are now enabled!</strong>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    To activate PayHero M-Pesa STK Push, add the following environment variables in your Vercel project:
+                  </p>
+                  <ul className="space-y-2 text-sm">
+                    <li className="glass p-2 rounded">
+                      <code className="text-primary">PAYHERO_API_KEY</code> - Your PayHero API key (from PayHero
+                      dashboard)
+                    </li>
+                    <li className="glass p-2 rounded">
+                      <code className="text-primary">PAYHERO_CHANNEL_ID</code> - Your Payment Channel ID (e.g., 133)
+                    </li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Get these credentials from: PayHero Dashboard → Payment Channels → My Payment Channels
+                  </p>
+                </div>
+              </Card>
+
+              <Card className="glass-card p-6">
+                <h2 className="text-xl font-semibold mb-4">M-Pesa Details (Manual Fallback)</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  These details are shown to users for manual bank transfers if automatic payments are unavailable
+                </p>
                 <div className="space-y-4">
                   <div>
                     <Label>Business Number (Till/Paybill)</Label>
