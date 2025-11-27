@@ -41,9 +41,9 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
     console.log("[v0] M-Pesa config loaded:", {
       shortcode,
       environment,
-      hasConsumerKey: !!consumerKey,
-      hasConsumerSecret: !!consumerSecret,
-      hasPasskey: !!passkey,
+      consumerKeyLength: consumerKey?.length,
+      consumerSecretLength: consumerSecret?.length,
+      passkeyLength: passkey?.length,
     })
 
     // Format phone number to 254XXXXXXXXX
@@ -64,24 +64,42 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
         ? "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
         : "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
 
+    console.log("[v0] OAuth URL:", authUrl)
+    const authHeader = "Basic " + Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64")
+    console.log("[v0] Auth header length:", authHeader.length)
+
     const authResponse = await fetch(authUrl, {
       method: "GET",
       headers: {
-        Authorization: "Basic " + Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64"),
+        Authorization: authHeader,
       },
     })
 
+    console.log("[v0] OAuth response status:", authResponse.status)
+
     if (!authResponse.ok) {
       const errorText = await authResponse.text()
-      console.error("[v0] OAuth failed:", errorText)
+      console.error("[v0] OAuth failed with status:", authResponse.status)
+      console.error("[v0] OAuth error response:", errorText)
       return {
         success: false,
-        error: "Failed to authenticate with M-Pesa. Please try again.",
+        error: `Failed to authenticate with M-Pesa (${authResponse.status}): ${errorText}`,
       }
     }
 
-    const { access_token } = await authResponse.json()
-    console.log("[v0] Access token obtained")
+    const authData = await authResponse.json()
+    console.log("[v0] OAuth response:", authData)
+
+    if (!authData.access_token) {
+      console.error("[v0] No access token in response:", authData)
+      return {
+        success: false,
+        error: "Failed to obtain access token from M-Pesa",
+      }
+    }
+
+    const access_token = authData.access_token
+    console.log("[v0] Access token obtained successfully")
 
     // Generate password and timestamp
     const timestamp = new Date()
@@ -89,6 +107,9 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
       .replace(/[-:TZ.]/g, "")
       .slice(0, 14)
     const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64")
+
+    console.log("[v0] Generated timestamp:", timestamp)
+    console.log("[v0] Password length:", password.length)
 
     // Create transaction record
     const adminClient = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -142,7 +163,12 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
       TransactionDesc: `Deposit KSh ${amount}`,
     }
 
-    console.log("[v0] STK Push payload:", { ...stkPayload, Password: "REDACTED" })
+    console.log("[v0] STK Push URL:", stkUrl)
+    console.log("[v0] STK Push payload:", {
+      ...stkPayload,
+      Password: "REDACTED",
+      CallBackURL: callbackUrl,
+    })
 
     const stkResponse = await fetch(stkUrl, {
       method: "POST",
@@ -153,8 +179,10 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
       body: JSON.stringify(stkPayload),
     })
 
+    console.log("[v0] STK Push response status:", stkResponse.status)
+
     const stkData = await stkResponse.json()
-    console.log("[v0] STK Push response:", stkData)
+    console.log("[v0] STK Push full response:", JSON.stringify(stkData, null, 2))
 
     if (stkData.ResponseCode === "0" || stkData.ResponseCode === 0) {
       // Update transaction with checkout request ID
@@ -187,9 +215,11 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
         })
         .eq("id", transaction.id)
 
+      console.error("[v0] STK Push rejected:", stkData)
+
       return {
         success: false,
-        error: stkData.ResponseDescription || stkData.errorMessage || "STK Push failed",
+        error: stkData.ResponseDescription || stkData.errorMessage || stkData.errorCode || "STK Push failed",
       }
     }
   } catch (error: any) {
