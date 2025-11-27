@@ -87,8 +87,15 @@ export default function WalletPage() {
 
       setProcessing(true)
 
+      console.log("[v0] Starting M-Pesa deposit...")
+      console.log("[v0] User ID:", user?.id)
+      console.log("[v0] Phone:", phoneNumber)
+      console.log("[v0] Amount:", amount)
+
       try {
         const result = await initiateMpesaPayment(phoneNumber, amount, user.id)
+
+        console.log("[v0] M-Pesa payment result:", result)
 
         if (result.success) {
           toast({
@@ -103,6 +110,7 @@ export default function WalletPage() {
             loadUser()
           }, 2000)
         } else {
+          console.error("[v0] Payment failed:", result.error)
           toast({
             title: "Payment Failed",
             description: result.error,
@@ -110,10 +118,10 @@ export default function WalletPage() {
           })
         }
       } catch (error) {
-        console.error("Error:", error)
+        console.error("[v0] Exception during payment:", error)
         toast({
           title: "Error",
-          description: "Failed to initiate M-Pesa payment",
+          description: "Failed to initiate M-Pesa payment. Check console for details.",
           variant: "destructive",
         })
       } finally {
