@@ -4,6 +4,30 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function initiateMpesaPayment(phoneNumber: string, amount: number, userId: string) {
   try {
+    console.log("[v0] Initiating M-Pesa payment for user:", userId)
+
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      console.error("[v0] Authentication failed:", authError)
+      return {
+        success: false,
+        error: "Unauthorized. Authentication required.",
+      }
+    }
+
+    if (user.id !== userId) {
+      console.error("[v0] User ID mismatch:", { authUserId: user.id, providedUserId: userId })
+      return {
+        success: false,
+        error: "Unauthorized. User ID mismatch.",
+      }
+    }
+
     // Get PayHero credentials from environment or app settings
     const PAYHERO_API_KEY = process.env.PAYHERO_API_KEY
     const PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID
@@ -24,12 +48,12 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       formattedPhone = "254" + formattedPhone
     }
 
-    const supabase = await createClient()
+    console.log("[v0] Creating transaction record...")
 
     const { data: transaction, error: txError } = await supabase
       .from("transactions")
       .insert({
-        user_id: userId,
+        user_id: user.id,
         type: "deposit",
         amount: amount,
         status: "pending",
@@ -45,11 +69,15 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
 
     if (txError) {
       console.error("[v0] Error creating transaction:", txError)
-      return { success: false, error: "Failed to create transaction" }
+      return { success: false, error: `Failed to create transaction: ${txError.message}` }
     }
+
+    console.log("[v0] Transaction created:", transaction.id)
 
     // Generate callback URL
     const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://earnyflex.vercel.app"}/api/mpesa-callback`
+
+    console.log("[v0] Initiating PayHero STK Push...")
 
     // Initiate STK Push with PayHero
     const response = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
@@ -69,6 +97,8 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     })
 
     const result = await response.json()
+
+    console.log("[v0] PayHero response:", result)
 
     if (!response.ok || !result.success) {
       console.error("[v0] PayHero API error:", result)
@@ -104,7 +134,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       })
       .eq("id", transaction.id)
 
-    console.log("[v0] M-Pesa STK Push initiated:", result)
+    console.log("[v0] M-Pesa STK Push initiated successfully")
 
     return {
       success: true,
