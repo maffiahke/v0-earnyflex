@@ -107,23 +107,10 @@ export async function saveMpesaConfig(mpesaConfig: any) {
 
     console.log("[v0] Saving M-Pesa config with service role key")
 
-    // Get current app settings
-    const { data: currentSettings } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "appSettings")
-      .single()
-
-    // Merge M-Pesa config with existing settings
-    const updatedSettings = {
-      ...(currentSettings?.value || {}),
-      mpesaConfig,
-    }
-
     const { error } = await supabase.from("app_settings").upsert(
       {
-        key: "appSettings",
-        value: updatedSettings,
+        key: "mpesaConfig",
+        value: mpesaConfig,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "key" },

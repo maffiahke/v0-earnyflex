@@ -27,6 +27,7 @@ export default function AdminSettingsPage() {
     appSettings: liveSettings,
     paymentMethods: livePaymentMethods,
     socialProofSettings: liveSocialProofSettings,
+    mpesaConfig: liveMpesaConfig, // Get M-Pesa config from hook
   } = useAppSettings()
 
   const [appSettings, setAppSettings] = useState(liveSettings)
@@ -58,10 +59,10 @@ export default function AdminSettingsPage() {
   }, [liveSocialProofSettings])
 
   useEffect(() => {
-    if (liveSettings.mpesaConfig) {
-      setMpesaConfig(liveSettings.mpesaConfig)
+    if (liveMpesaConfig && Object.keys(liveMpesaConfig).length > 0) {
+      setMpesaConfig(liveMpesaConfig)
     }
-  }, [liveSettings])
+  }, [liveMpesaConfig])
 
   const handleSaveAppSettings = async () => {
     setLoading(true)

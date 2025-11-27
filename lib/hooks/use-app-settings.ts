@@ -42,6 +42,14 @@ export interface SocialProofSettings {
   earningMessages: string[]
 }
 
+export interface MpesaConfig {
+  consumerKey: string
+  consumerSecret: string
+  shortcode: string
+  passkey: string
+  environment: "sandbox" | "production"
+}
+
 export function useAppSettings() {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     appName: "Earnify",
@@ -53,13 +61,6 @@ export function useAppSettings() {
     maxWithdrawal: 50000,
     minDeposit: 100,
     maxDeposit: 100000,
-    mpesaConfig: {
-      consumerKey: "",
-      consumerSecret: "",
-      shortcode: "",
-      passkey: "",
-      environment: "sandbox",
-    },
   })
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethods>({
@@ -78,6 +79,14 @@ export function useAppSettings() {
     fakeNames: ["John K.", "Mary W.", "Peter M.", "Grace N.", "David O."],
     counties: ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret"],
     earningMessages: ["just earned", "completed a task worth", "just made", "successfully earned"],
+  })
+
+  const [mpesaConfig, setMpesaConfig] = useState<MpesaConfig>({
+    consumerKey: "",
+    consumerSecret: "",
+    shortcode: "",
+    passkey: "",
+    environment: "sandbox",
   })
 
   const [loading, setLoading] = useState(true)
@@ -109,6 +118,8 @@ export function useAppSettings() {
             setPaymentMethods(payload.new.value)
           } else if (payload.new.key === "socialProofSettings") {
             setSocialProofSettings(payload.new.value)
+          } else if (payload.new.key === "mpesaConfig") {
+            setMpesaConfig(payload.new.value)
           }
         },
       )
@@ -142,6 +153,8 @@ export function useAppSettings() {
             setPaymentMethods(setting.value)
           } else if (setting.key === "socialProofSettings") {
             setSocialProofSettings(setting.value)
+          } else if (setting.key === "mpesaConfig") {
+            setMpesaConfig(setting.value)
           }
         })
       }
@@ -156,6 +169,7 @@ export function useAppSettings() {
     appSettings,
     paymentMethods,
     socialProofSettings,
+    mpesaConfig,
     loading,
   }
 }

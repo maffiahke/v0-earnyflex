@@ -90,6 +90,8 @@ export default function WalletPage() {
       try {
         const result = await initiateStkPush(phoneNumber, amount, user.id)
 
+        console.log("[v0] STK Push result:", result)
+
         if (result.success) {
           toast({
             title: "STK Push Sent",
@@ -99,11 +101,19 @@ export default function WalletPage() {
           setPhoneNumber("")
           setTimeout(() => loadUser(), 2000)
         } else {
+          const errorMessage = result.error || "Failed to initiate payment. Please try again."
+          console.error("[v0] Payment failed:", errorMessage)
+
           toast({
             title: "Payment Failed",
-            description: result.error || "Failed to initiate payment. Please try again.",
+            description: errorMessage,
             variant: "destructive",
           })
+
+          // Show alert with more details
+          alert(
+            `Payment Failed:\n\n${errorMessage}\n\nPlease ensure M-Pesa credentials are configured in Admin Settings.`,
+          )
         }
       } catch (error: any) {
         console.error("[v0] STK Push error:", error)
@@ -112,6 +122,7 @@ export default function WalletPage() {
           description: error.message || "An error occurred. Please try again.",
           variant: "destructive",
         })
+        alert(`Error: ${error.message || "An error occurred"}`)
       } finally {
         setProcessing(false)
       }
