@@ -50,17 +50,16 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     let formattedPhone = phoneNumber.trim().replace(/\s/g, "")
     console.log("[v0] Original phone:", formattedPhone)
 
-    // Ensure it starts with 254
-    if (formattedPhone.startsWith("0")) {
-      formattedPhone = "254" + formattedPhone.substring(1)
-    } else if (!formattedPhone.startsWith("254") && !formattedPhone.startsWith("+254")) {
-      formattedPhone = "254" + formattedPhone
+    // Convert to Kenyan format starting with 0
+    if (formattedPhone.startsWith("+254")) {
+      formattedPhone = "0" + formattedPhone.substring(4)
+    } else if (formattedPhone.startsWith("254")) {
+      formattedPhone = "0" + formattedPhone.substring(3)
+    } else if (!formattedPhone.startsWith("0")) {
+      formattedPhone = "0" + formattedPhone
     }
 
-    // Remove + if present
-    formattedPhone = formattedPhone.replace(/^\+/, "")
-
-    console.log("[v0] Formatted phone:", formattedPhone)
+    console.log("[v0] Formatted phone for PayHero:", formattedPhone)
 
     console.log("[v0] Creating transaction record...")
 
@@ -159,7 +158,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       await supabaseAdmin
         .from("transactions")
         .update({
-          status: "rejected",
+          status: "failed",
           payment_details: {
             ...transaction.payment_details,
             error: result.message || result.error || "Payment initiation failed",
