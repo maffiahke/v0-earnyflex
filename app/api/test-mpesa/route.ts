@@ -10,12 +10,11 @@ export async function GET() {
 
     const mpesaConfig = settingsData?.value as any
 
-    // Fallback to environment variables
-    const consumerKey = mpesaConfig?.consumerKey || process.env.MPESA_CONSUMER_KEY
-    const consumerSecret = mpesaConfig?.consumerSecret || process.env.MPESA_CONSUMER_SECRET
-    const shortcode = mpesaConfig?.shortcode || process.env.MPESA_SHORTCODE
-    const passkey = mpesaConfig?.passkey || process.env.MPESA_PASSKEY
-    const environment = mpesaConfig?.environment || process.env.MPESA_ENVIRONMENT || "sandbox"
+    const consumerKey = (mpesaConfig?.consumerKey || process.env.MPESA_CONSUMER_KEY || "").trim()
+    const consumerSecret = (mpesaConfig?.consumerSecret || process.env.MPESA_CONSUMER_SECRET || "").trim()
+    const shortcode = (mpesaConfig?.shortcode || process.env.MPESA_SHORTCODE || "").trim()
+    const passkey = (mpesaConfig?.passkey || process.env.MPESA_PASSKEY || "").trim()
+    const environment = (mpesaConfig?.environment || process.env.MPESA_ENVIRONMENT || "sandbox").trim()
 
     if (!consumerKey || !consumerSecret || !shortcode || !passkey) {
       return NextResponse.json({
@@ -31,50 +30,68 @@ export async function GET() {
       })
     }
 
-    // Test OAuth authentication
-    const authUrl =
-      environment === "production"
-        ? "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-        : "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+    const environments = [
+      { name: "sandbox", url: "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" },
+      { name: "production", url: "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" },
+    ]
 
     const authHeader = "Basic " + Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64")
 
-    console.log("[v0] Testing M-Pesa OAuth...")
-    console.log("[v0] Auth URL:", authUrl)
-    console.log("[v0] Consumer Key:", consumerKey.substring(0, 10) + "...")
-    console.log("[v0] Consumer Secret:", consumerSecret.substring(0, 10) + "...")
+    const testResults = []
 
-    const authResponse = await fetch(authUrl, {
-      method: "GET",
-      headers: {
-        Authorization: authHeader,
-      },
-    })
+    for (const env of environments) {
+      console.log(`[v0] Testing ${env.name} OAuth...`)
 
-    const authResponseText = await authResponse.text()
-    let authData
+      try {
+        const authResponse = await fetch(env.url, {
+          method: "GET",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json",
+          },
+        })
 
-    try {
-      authData = JSON.parse(authResponseText)
-    } catch {
-      authData = { raw: authResponseText }
+        const authResponseText = await authResponse.text()
+        let authData
+
+        try {
+          authData = JSON.parse(authResponseText)
+        } catch {
+          authData = { raw: authResponseText }
+        }
+
+        testResults.push({
+          environment: env.name,
+          url: env.url,
+          status: authResponse.status,
+          statusText: authResponse.statusText,
+          success: authResponse.ok,
+          response: authData,
+          hasAccessToken: !!(authData as any).access_token,
+        })
+      } catch (error: any) {
+        testResults.push({
+          environment: env.name,
+          url: env.url,
+          error: error.message,
+        })
+      }
     }
 
     return NextResponse.json({
-      status: authResponse.ok ? "success" : "error",
-      oauth: {
-        url: authUrl,
-        status: authResponse.status,
-        statusText: authResponse.statusText,
-        response: authData,
-        hasAccessToken: !!(authData as any).access_token,
-      },
+      status: testResults.some((r) => r.success) ? "success" : "error",
+      message: testResults.some((r) => r.success)
+        ? `Authentication successful with ${testResults.find((r) => r.success)?.environment} environment`
+        : "Authentication failed in both sandbox and production",
+      tests: testResults,
       config: {
         consumerKeyPreview: consumerKey.substring(0, 15) + "...",
+        consumerKeyLength: consumerKey.length,
         consumerSecretPreview: consumerSecret.substring(0, 15) + "...",
+        consumerSecretLength: consumerSecret.length,
         shortcode,
         passkeyLength: passkey.length,
-        environment,
+        configuredEnvironment: environment,
       },
     })
   } catch (error: any) {

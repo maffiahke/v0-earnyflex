@@ -24,11 +24,11 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
     const mpesaConfig = settingsData?.value as any
 
     // Fallback to environment variables if not in database
-    const consumerKey = mpesaConfig?.consumerKey || process.env.MPESA_CONSUMER_KEY
-    const consumerSecret = mpesaConfig?.consumerSecret || process.env.MPESA_CONSUMER_SECRET
-    const shortcode = mpesaConfig?.shortcode || process.env.MPESA_SHORTCODE
-    const passkey = mpesaConfig?.passkey || process.env.MPESA_PASSKEY
-    const environment = mpesaConfig?.environment || process.env.MPESA_ENVIRONMENT || "sandbox"
+    const consumerKey = (mpesaConfig?.consumerKey || process.env.MPESA_CONSUMER_KEY || "").trim()
+    const consumerSecret = (mpesaConfig?.consumerSecret || process.env.MPESA_CONSUMER_SECRET || "").trim()
+    const shortcode = (mpesaConfig?.shortcode || process.env.MPESA_SHORTCODE || "").trim()
+    const passkey = (mpesaConfig?.passkey || process.env.MPESA_PASSKEY || "").trim()
+    const environment = (mpesaConfig?.environment || process.env.MPESA_ENVIRONMENT || "sandbox").trim()
 
     if (!consumerKey || !consumerSecret || !shortcode || !passkey) {
       console.error("[v0] M-Pesa credentials not configured")
@@ -66,24 +66,33 @@ export async function initiateStkPush(phoneNumber: string, amount: number, userI
 
     console.log("[v0] OAuth URL:", authUrl)
     const authHeader = "Basic " + Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64")
-    console.log("[v0] Auth header length:", authHeader.length)
 
     const authResponse = await fetch(authUrl, {
       method: "GET",
       headers: {
         Authorization: authHeader,
+        "Content-Type": "application/json",
       },
     })
 
-    console.log("[v0] OAuth response status:", authResponse.status)
+    console.log("[v0] OAuth response status:", authResponse.status, authResponse.statusText)
 
     if (!authResponse.ok) {
       const errorText = await authResponse.text()
       console.error("[v0] OAuth failed with status:", authResponse.status)
       console.error("[v0] OAuth error response:", errorText)
+
+      let errorMessage = `Failed to authenticate with M-Pesa. Status: ${authResponse.status}`
+
+      if (authResponse.status === 400) {
+        errorMessage += ". Invalid credentials. Please verify your Consumer Key and Consumer Secret."
+      } else if (authResponse.status === 401) {
+        errorMessage += ". Unauthorized. Please check your API credentials."
+      }
+
       return {
         success: false,
-        error: `Failed to authenticate with M-Pesa (${authResponse.status}): ${errorText}`,
+        error: errorMessage,
       }
     }
 
