@@ -121,11 +121,14 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
 
     console.log("[v0] PayHero payload:", JSON.stringify(payload, null, 2))
 
-    // Initiate STK Push with PayHero - using the API key directly as Bearer token
+    const authToken = Buffer.from(`${PAYHERO_API_KEY}:`).toString("base64")
+    console.log("[v0] Auth token created (Basic auth)")
+
+    // Initiate STK Push with PayHero
     const response = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
       method: "POST",
       headers: {
-        Authorization: PAYHERO_API_KEY, // Use API key directly without Bearer prefix
+        Authorization: `Basic ${authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),

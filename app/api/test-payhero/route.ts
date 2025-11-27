@@ -29,10 +29,12 @@ export async function GET() {
 
   // Test API connection
   try {
+    const authToken = Buffer.from(`${PAYHERO_API_KEY}:`).toString("base64")
+
     const response = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
       method: "POST",
       headers: {
-        Authorization: PAYHERO_API_KEY, // Removed Bearer prefix - PayHero expects API key directly
+        Authorization: `Basic ${authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -59,6 +61,7 @@ export async function GET() {
       http_status: response.status,
       payhero_response: result,
       test_data: testData,
+      auth_format: "Basic Authentication (base64 encoded)",
       note: "This was a test transaction with phone 0700000000 which should not actually process",
     })
   } catch (error: any) {
