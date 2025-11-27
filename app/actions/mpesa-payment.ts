@@ -29,32 +29,36 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       },
     )
 
+    let PAYHERO_BASIC_AUTH_TOKEN = process.env.PAYHERO_API_KEY
+    let PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID
+
+    console.log("[v0] Checking database for PayHero config...")
     const { data: payHeroConfigData, error: configError } = await supabaseAdmin
       .from("app_settings")
       .select("value")
       .eq("key", "payHeroConfig")
-      .single()
+      .maybeSingle()
 
-    if (configError || !payHeroConfigData?.value) {
-      console.error("[v0] PayHero config not found:", configError)
-      return {
-        success: false,
-        error: "Payment gateway not configured. Please contact admin to configure PayHero credentials.",
-      }
+    if (payHeroConfigData?.value) {
+      console.log("[v0] Found PayHero config in database")
+      const payHeroConfig = payHeroConfigData.value
+      PAYHERO_BASIC_AUTH_TOKEN = payHeroConfig.basicAuthToken || PAYHERO_BASIC_AUTH_TOKEN
+      PAYHERO_CHANNEL_ID = payHeroConfig.channelId || PAYHERO_CHANNEL_ID
+    } else {
+      console.log("[v0] Using PayHero config from environment variables")
     }
 
-    const payHeroConfig = payHeroConfigData.value
-    const PAYHERO_BASIC_AUTH_TOKEN = payHeroConfig.basicAuthToken
-    const PAYHERO_CHANNEL_ID = payHeroConfig.channelId
-
     console.log("[v0] PayHero Basic Auth Token exists:", !!PAYHERO_BASIC_AUTH_TOKEN)
+    console.log("[v0] PayHero Basic Auth Token length:", PAYHERO_BASIC_AUTH_TOKEN?.length)
+    console.log("[v0] PayHero Basic Auth Token preview:", PAYHERO_BASIC_AUTH_TOKEN?.substring(0, 20) + "...")
     console.log("[v0] PayHero Channel ID:", PAYHERO_CHANNEL_ID)
 
     if (!PAYHERO_BASIC_AUTH_TOKEN || !PAYHERO_CHANNEL_ID) {
       console.error("[v0] Missing PayHero credentials")
       return {
         success: false,
-        error: "Payment gateway credentials incomplete. Contact admin.",
+        error:
+          "Payment gateway not configured. Please add PAYHERO_API_KEY and PAYHERO_CHANNEL_ID environment variables or configure in admin settings.",
       }
     }
 
