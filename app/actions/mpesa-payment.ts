@@ -1,6 +1,8 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
 export async function initiateMpesaPayment(phoneNumber: string, amount: number, userId: string) {
   try {
@@ -50,7 +52,25 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
 
     console.log("[v0] Creating transaction record...")
 
-    const { data: transaction, error: txError } = await supabase
+    const cookieStore = await cookies()
+    const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+            } catch {}
+          },
+        },
+      },
+    )
+
+    const { data: transaction, error: txError } = await supabaseAdmin
       .from("transactions")
       .insert({
         user_id: user.id,
@@ -103,8 +123,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     if (!response.ok || !result.success) {
       console.error("[v0] PayHero API error:", result)
 
-      // Update transaction as failed
-      await supabase
+      await supabaseAdmin
         .from("transactions")
         .update({
           status: "rejected",
@@ -121,8 +140,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       }
     }
 
-    // Update transaction with PayHero reference
-    await supabase
+    await supabaseAdmin
       .from("transactions")
       .update({
         payment_details: {
@@ -143,7 +161,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       transactionId: transaction.id,
       message: "Payment request sent to your phone. Please enter your M-Pesa PIN to complete.",
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("[v0] Error initiating M-Pesa payment:", error)
     return {
       success: false,
