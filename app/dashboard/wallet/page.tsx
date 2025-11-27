@@ -14,7 +14,6 @@ import { Wallet, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle, XCircle, Lo
 import { motion } from "framer-motion"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getUserProfile } from "@/lib/supabase/queries"
-import { initiateMpesaPayment } from "@/app/actions/mpesa-payment"
 
 export default function WalletPage() {
   const router = useRouter()
@@ -25,10 +24,10 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true)
   const [depositAmount, setDepositAmount] = useState("")
   const [depositMethod, setDepositMethod] = useState<"mpesa" | "bank">("mpesa")
-  const [phoneNumber, setPhoneNumber] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawMethod, setWithdrawMethod] = useState<"mpesa" | "bank">("mpesa")
   const [processing, setProcessing] = useState(false)
+  const [showPaybillInstructions, setShowPaybillInstructions] = useState(false)
 
   useEffect(() => {
     loadUser()
@@ -76,88 +75,7 @@ export default function WalletPage() {
     }
 
     if (depositMethod === "mpesa") {
-      if (!phoneNumber) {
-        toast({
-          title: "Phone number required",
-          description: "Please enter your M-Pesa phone number",
-          variant: "destructive",
-        })
-        return
-      }
-
-      setProcessing(true)
-
-      console.log("[v0] Starting M-Pesa deposit...")
-      console.log("[v0] User ID:", user?.id)
-      console.log("[v0] Phone:", phoneNumber)
-      console.log("[v0] Amount:", amount)
-
-      try {
-        const result = await initiateMpesaPayment(phoneNumber, amount, user.id)
-
-        console.log("[v0] M-Pesa payment result:", result)
-
-        if (result.success) {
-          toast({
-            title: "STK Push Sent",
-            description: result.message,
-          })
-
-          setDepositAmount("")
-          setPhoneNumber("")
-
-          setTimeout(() => {
-            loadUser()
-          }, 2000)
-        } else {
-          console.error("[v0] Payment failed:", result.error)
-          console.error("[v0] PayHero response details:", result.details)
-
-          let userFriendlyMessage = result.error || "Unknown error occurred"
-
-          // Check for specific PayHero error messages
-          if (result.details?.error_message) {
-            const errorMsg = result.details.error_message.toLowerCase()
-
-            if (errorMsg.includes("insufficient balance")) {
-              userFriendlyMessage =
-                "Merchant account has insufficient balance. Please contact support or try again later."
-            } else {
-              userFriendlyMessage = result.details.error_message
-            }
-          }
-
-          toast({
-            title: "Payment Failed",
-            description: userFriendlyMessage,
-            variant: "destructive",
-            duration: 10000,
-          })
-
-          // Only show detailed alert for non-balance errors
-          if (!result.details?.error_message?.toLowerCase().includes("insufficient balance")) {
-            if (result.details) {
-              alert(
-                `PayHero Error:\n${userFriendlyMessage}\n\nPayHero Response:\n${JSON.stringify(result.details, null, 2)}`,
-              )
-            }
-          }
-        }
-      } catch (error: any) {
-        console.error("[v0] Exception during payment:", error)
-        const errorMessage = error?.message || error?.toString() || "Unknown error"
-
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 10000,
-        })
-
-        alert(`Exception: ${errorMessage}\n\nCheck browser console for full stack trace.`)
-      } finally {
-        setProcessing(false)
-      }
+      setShowPaybillInstructions(true)
       return
     }
 
@@ -338,30 +256,13 @@ export default function WalletPage() {
                       <SelectItem value="mpesa">
                         <div className="flex items-center gap-2">
                           <Smartphone className="w-4 h-4" />
-                          M-Pesa (Automatic)
+                          M-Pesa Paybill
                         </div>
                       </SelectItem>
                       <SelectItem value="bank">Bank Transfer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {depositMethod === "mpesa" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="phone-number">M-Pesa Phone Number</Label>
-                    <Input
-                      id="phone-number"
-                      type="tel"
-                      placeholder="0712345678 or 254712345678"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="bg-background/50"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enter the phone number to receive the STK Push prompt
-                    </p>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="deposit-amount">Amount (KSh)</Label>
@@ -375,17 +276,25 @@ export default function WalletPage() {
                   />
                 </div>
 
-                {depositMethod === "mpesa" ? (
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <p className="text-sm flex items-start gap-2">
-                      <Smartphone className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>
-                        You will receive an STK Push on your phone. Enter your M-Pesa PIN to complete the payment. Your
-                        account will be credited automatically.
-                      </span>
-                    </p>
+                {depositMethod === "mpesa" && (
+                  <div className="bg-primary/10 p-4 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">How to deposit via M-Pesa Paybill:</p>
+                    <ol className="text-sm space-y-1 list-decimal list-inside">
+                      <li>Go to M-Pesa menu on your phone</li>
+                      <li>Select Lipa na M-Pesa → Paybill</li>
+                      <li>
+                        Enter Paybill Number: <span className="font-bold">522533</span>
+                      </li>
+                      <li>
+                        Account Number: <span className="font-bold">{user?.id || "Your User ID"}</span>
+                      </li>
+                      <li>Enter amount and complete transaction</li>
+                      <li>Your account will be credited automatically within 1-2 minutes after successful payment.</li>
+                    </ol>
                   </div>
-                ) : (
+                )}
+
+                {depositMethod === "bank" && (
                   <div className="bg-muted/50 p-3 rounded-lg text-sm text-muted-foreground">
                     Bank transfer requires manual verification by admin. Please contact support after transfer.
                   </div>
@@ -404,10 +313,57 @@ export default function WalletPage() {
                   ) : (
                     <>
                       <ArrowDownCircle className="w-4 h-4 mr-2" />
-                      {depositMethod === "mpesa" ? "Send STK Push" : "Request Deposit"}
+                      {depositMethod === "mpesa" ? "View Payment Instructions" : "Request Deposit"}
                     </>
                   )}
                 </Button>
+
+                {showPaybillInstructions && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="max-w-md w-full p-6 space-y-4">
+                      <h3 className="text-xl font-bold">M-Pesa Paybill Instructions</h3>
+                      <div className="space-y-3">
+                        <div className="bg-primary/10 p-4 rounded-lg">
+                          <p className="text-sm font-medium mb-2">Payment Details:</p>
+                          <div className="space-y-1 text-sm">
+                            <p>
+                              Paybill Number: <span className="font-bold">522533</span>
+                            </p>
+                            <p>
+                              Account Number: <span className="font-bold">{user?.id}</span>
+                            </p>
+                            <p>
+                              Amount: <span className="font-bold">KSh {depositAmount}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-sm space-y-2">
+                          <p className="font-medium">Steps:</p>
+                          <ol className="list-decimal list-inside space-y-1">
+                            <li>Open M-Pesa menu on your phone</li>
+                            <li>Select Lipa na M-Pesa → Paybill</li>
+                            <li>Enter Paybill: 522533</li>
+                            <li>Account: {user?.id}</li>
+                            <li>Amount: {depositAmount}</li>
+                            <li>Enter PIN and confirm</li>
+                          </ol>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Your account will be credited automatically within 1-2 minutes after successful payment.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setShowPaybillInstructions(false)
+                          setDepositAmount("")
+                        }}
+                        className="w-full"
+                      >
+                        Close
+                      </Button>
+                    </Card>
+                  </div>
+                )}
               </div>
             </Card>
           </TabsContent>

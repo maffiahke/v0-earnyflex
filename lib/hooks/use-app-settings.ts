@@ -67,8 +67,6 @@ export function useAppSettings() {
     earningMessages: ["just earned", "completed a task worth", "just made", "successfully earned"],
   })
 
-  const [payHeroConfig, setPayHeroConfig] = useState<any>(null)
-
   const [loading, setLoading] = useState(true)
   const supabaseRef = useRef<any>(null)
   const subscriptionRef = useRef<RealtimeChannel | null>(null)
@@ -98,8 +96,6 @@ export function useAppSettings() {
             setPaymentMethods(payload.new.value)
           } else if (payload.new.key === "socialProofSettings") {
             setSocialProofSettings(payload.new.value)
-          } else if (payload.new.key === "payHeroConfig") {
-            setPayHeroConfig(payload.new.value)
           }
         },
       )
@@ -133,8 +129,6 @@ export function useAppSettings() {
             setPaymentMethods(setting.value)
           } else if (setting.key === "socialProofSettings") {
             setSocialProofSettings(setting.value)
-          } else if (setting.key === "payHeroConfig") {
-            setPayHeroConfig(setting.value)
           }
         })
       }
@@ -149,7 +143,6 @@ export function useAppSettings() {
     appSettings,
     paymentMethods,
     socialProofSettings,
-    payHeroConfig,
     loading,
   }
 }

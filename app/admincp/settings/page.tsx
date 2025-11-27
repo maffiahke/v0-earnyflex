@@ -12,12 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Settings, DollarSign, Gift, MessageSquare, Plus, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useAppSettings } from "@/lib/hooks/use-app-settings"
-import {
-  saveAppSettings,
-  savePaymentMethods,
-  saveSocialProofSettings,
-  savePayHeroConfig,
-} from "@/app/actions/admin-settings"
+import { saveAppSettings, savePaymentMethods, saveSocialProofSettings } from "@/app/actions/admin-settings"
 
 export default function AdminSettingsPage() {
   const { toast } = useToast()
@@ -142,35 +137,6 @@ export default function AdminSettingsPage() {
       toast({
         title: "Error",
         description: "An error occurred while saving social proof settings",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSavePayHeroConfig = async () => {
-    setLoading(true)
-    try {
-      const result = await savePayHeroConfig(payHeroConfig)
-
-      if (!result.success) {
-        toast({
-          title: "Error",
-          description: "Failed to save PayHero credentials: " + (result.error || "Unknown error"),
-          variant: "destructive",
-        })
-        return
-      }
-
-      toast({
-        title: "PayHero Credentials Saved",
-        description: "PayHero configuration has been updated successfully",
-      })
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "An error occurred while saving PayHero credentials",
         variant: "destructive",
       })
     } finally {
@@ -400,9 +366,6 @@ export default function AdminSettingsPage() {
                   />
                   <p className="text-sm text-muted-foreground">Your PayHero Account ID (shown in PayHero dashboard)</p>
                 </div>
-                <Button onClick={handleSavePayHeroConfig} disabled={loading}>
-                  {loading ? "Saving..." : "Save PayHero Configuration"}
-                </Button>
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
                   <p className="text-sm font-medium mb-2">Configuration Status:</p>
                   <div className="space-y-1">
@@ -425,30 +388,6 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-
-            <Card className="glass-card p-6">
-              <h2 className="text-xl font-semibold mb-4">PayHero API Configuration (M-Pesa STK Push)</h2>
-              <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg space-y-3">
-                <p className="text-sm">
-                  <strong>Automatic M-Pesa payments are now enabled!</strong>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  To activate PayHero M-Pesa STK Push, add the following environment variables in your Vercel project:
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="glass p-2 rounded">
-                    <code className="text-primary">PAYHERO_API_KEY</code> - Your PayHero API key (from PayHero
-                    dashboard)
-                  </li>
-                  <li className="glass p-2 rounded">
-                    <code className="text-primary">PAYHERO_CHANNEL_ID</code> - Your Payment Channel ID (e.g., 133)
-                  </li>
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Get these credentials from: PayHero Dashboard → Payment Channels → My Payment Channels
-                </p>
-              </div>
             </Card>
 
             <Card className="glass-card p-6">
