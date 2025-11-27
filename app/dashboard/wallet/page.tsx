@@ -111,19 +111,30 @@ export default function WalletPage() {
           }, 2000)
         } else {
           console.error("[v0] Payment failed:", result.error)
+
+          // Display the full error message from PayHero
           toast({
             title: "Payment Failed",
-            description: result.error,
+            description: result.error || "Unknown error occurred",
             variant: "destructive",
+            duration: 10000, // Show for 10 seconds
           })
+
+          // Also alert the error for debugging
+          alert(`PayHero Error: ${result.error}\n\nCheck browser console for more details.`)
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("[v0] Exception during payment:", error)
+        const errorMessage = error?.message || error?.toString() || "Unknown error"
+
         toast({
           title: "Error",
-          description: "Failed to initiate M-Pesa payment. Check console for details.",
+          description: errorMessage,
           variant: "destructive",
+          duration: 10000,
         })
+
+        alert(`Exception: ${errorMessage}\n\nCheck browser console for full stack trace.`)
       } finally {
         setProcessing(false)
       }

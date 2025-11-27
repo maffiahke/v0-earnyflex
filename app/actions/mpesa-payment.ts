@@ -55,10 +55,13 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
 
     if (!PAYHERO_BASIC_AUTH_TOKEN || !PAYHERO_CHANNEL_ID) {
       console.error("[v0] Missing PayHero credentials")
+      const missingCredentials = []
+      if (!PAYHERO_BASIC_AUTH_TOKEN) missingCredentials.push("PAYHERO_API_KEY (Basic Auth Token)")
+      if (!PAYHERO_CHANNEL_ID) missingCredentials.push("PAYHERO_CHANNEL_ID")
+
       return {
         success: false,
-        error:
-          "Payment gateway not configured. Please add PAYHERO_API_KEY and PAYHERO_CHANNEL_ID environment variables or configure in admin settings.",
+        error: `Missing PayHero credentials: ${missingCredentials.join(", ")}. Please configure these in admin settings or environment variables.`,
       }
     }
 
@@ -188,10 +191,11 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
         })
         .eq("id", transaction.id)
 
+      const errorMessage = result.message || result.error || result.errors?.[0]?.message || "Payment initiation failed"
+
       return {
         success: false,
-        error:
-          result.message || result.error || "Failed to initiate payment. Please check your phone number and try again.",
+        error: `PayHero Error (${response.status}): ${errorMessage}`,
       }
     }
 
