@@ -100,3 +100,32 @@ export async function saveSocialProofSettings(socialProofSettings: any) {
     return { success: false, error: err?.message || "Unknown error" }
   }
 }
+
+export async function savePayHeroConfig(payHeroConfig: any) {
+  try {
+    const supabase = await createAdminClient()
+
+    console.log("[v0] Saving PayHero config with service role key")
+
+    const { error } = await supabase.from("app_settings").upsert(
+      {
+        key: "payHeroConfig",
+        value: payHeroConfig,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    )
+
+    if (error) {
+      console.log("[v0] PayHero config error:", error)
+      return { success: false, error: error.message || JSON.stringify(error) }
+    }
+
+    revalidateTag("app-settings")
+    console.log("[v0] PayHero config saved successfully")
+    return { success: true }
+  } catch (err: any) {
+    console.log("[v0] Exception error:", err)
+    return { success: false, error: err?.message || "Unknown error" }
+  }
+}

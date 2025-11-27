@@ -2,16 +2,22 @@
 
 import { useState, useEffect } from "react"
 import { AdminLayout } from "@/components/admin-layout"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Settings, DollarSign, Gift, MessageSquare, Plus, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useAppSettings } from "@/lib/hooks/use-app-settings"
-import { saveAppSettings, savePaymentMethods, saveSocialProofSettings } from "@/app/actions/admin-settings"
+import {
+  saveAppSettings,
+  savePaymentMethods,
+  saveSocialProofSettings,
+  savePayHeroConfig,
+} from "@/app/actions/admin-settings"
 
 export default function AdminSettingsPage() {
   const { toast } = useToast()
@@ -20,16 +26,21 @@ export default function AdminSettingsPage() {
     appSettings: liveSettings,
     paymentMethods: livePaymentMethods,
     socialProofSettings: liveSocialProofSettings,
+    payHeroConfig: livePayHeroConfig,
   } = useAppSettings()
 
   const [appSettings, setAppSettings] = useState(liveSettings)
   const [paymentMethods, setPaymentMethods] = useState(livePaymentMethods)
   const [socialProofSettings, setSocialProofSettings] = useState(liveSocialProofSettings)
+  const [payHeroConfig, setPayHeroConfig] = useState({
+    basicAuthToken: "",
+    channelId: "445",
+  })
 
+  const [loading, setLoading] = useState(false)
   const [newName, setNewName] = useState("")
   const [newCounty, setNewCounty] = useState("")
   const [newMessage, setNewMessage] = useState("")
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setAppSettings(liveSettings)
@@ -42,6 +53,12 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     setSocialProofSettings(liveSocialProofSettings)
   }, [liveSocialProofSettings])
+
+  useEffect(() => {
+    if (livePayHeroConfig) {
+      setPayHeroConfig(livePayHeroConfig)
+    }
+  }, [livePayHeroConfig])
 
   const handleSaveAppSettings = async () => {
     setLoading(true)
@@ -125,6 +142,35 @@ export default function AdminSettingsPage() {
       toast({
         title: "Error",
         description: "An error occurred while saving social proof settings",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSavePayHeroConfig = async () => {
+    setLoading(true)
+    try {
+      const result = await savePayHeroConfig(payHeroConfig)
+
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: "Failed to save PayHero credentials: " + (result.error || "Unknown error"),
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "PayHero Credentials Saved",
+        description: "PayHero configuration has been updated successfully",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An error occurred while saving PayHero credentials",
         variant: "destructive",
       })
     } finally {
@@ -317,118 +363,178 @@ export default function AdminSettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="payment">
-            <div className="space-y-4">
-              {/* PayHero API Configuration Section */}
-              <Card className="glass-card p-6">
-                <h2 className="text-xl font-semibold mb-4">PayHero API Configuration (M-Pesa STK Push)</h2>
-                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg space-y-3">
-                  <p className="text-sm">
-                    <strong>Automatic M-Pesa payments are now enabled!</strong>
-                  </p>
+          <TabsContent value="payment" className="space-y-6">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  PayHero M-Pesa Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure PayHero API credentials for automatic M-Pesa STK Push payments
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payhero-token">Basic Auth Token</Label>
+                  <Textarea
+                    id="payhero-token"
+                    placeholder="Paste the complete Basic Auth Token from PayHero dashboard (starts with 'Basic ')"
+                    value={payHeroConfig.basicAuthToken}
+                    onChange={(e) => setPayHeroConfig({ ...payHeroConfig, basicAuthToken: e.target.value })}
+                    rows={4}
+                    className="font-mono text-sm"
+                  />
                   <p className="text-sm text-muted-foreground">
-                    To activate PayHero M-Pesa STK Push, add the following environment variables in your Vercel project:
-                  </p>
-                  <ul className="space-y-2 text-sm">
-                    <li className="glass p-2 rounded">
-                      <code className="text-primary">PAYHERO_API_KEY</code> - Your PayHero API key (from PayHero
-                      dashboard)
-                    </li>
-                    <li className="glass p-2 rounded">
-                      <code className="text-primary">PAYHERO_CHANNEL_ID</code> - Your Payment Channel ID (e.g., 133)
-                    </li>
-                  </ul>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Get these credentials from: PayHero Dashboard → Payment Channels → My Payment Channels
+                    Copy the "Basic Auth Token" from your PayHero dashboard (app.payhero.co.ke) and paste it here
                   </p>
                 </div>
-              </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="payhero-channel">Account ID / Channel ID</Label>
+                  <Input
+                    id="payhero-channel"
+                    type="text"
+                    placeholder="445"
+                    value={payHeroConfig.channelId}
+                    onChange={(e) => setPayHeroConfig({ ...payHeroConfig, channelId: e.target.value })}
+                  />
+                  <p className="text-sm text-muted-foreground">Your PayHero Account ID (shown in PayHero dashboard)</p>
+                </div>
+                <Button onClick={handleSavePayHeroConfig} disabled={loading}>
+                  {loading ? "Saving..." : "Save PayHero Configuration"}
+                </Button>
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+                  <p className="text-sm font-medium mb-2">Configuration Status:</p>
+                  <div className="space-y-1">
+                    <p className="text-sm flex items-center gap-2">
+                      {payHeroConfig.basicAuthToken ? (
+                        <span className="text-green-600">✓</span>
+                      ) : (
+                        <span className="text-red-600">✗</span>
+                      )}
+                      Basic Auth Token: {payHeroConfig.basicAuthToken ? "Configured" : "Not set"}
+                    </p>
+                    <p className="text-sm flex items-center gap-2">
+                      {payHeroConfig.channelId ? (
+                        <span className="text-green-600">✓</span>
+                      ) : (
+                        <span className="text-red-600">✗</span>
+                      )}
+                      Channel ID: {payHeroConfig.channelId || "Not set"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card className="glass-card p-6">
-                <h2 className="text-xl font-semibold mb-4">M-Pesa Details (Manual Fallback)</h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  These details are shown to users for manual bank transfers if automatic payments are unavailable
+            <Card className="glass-card p-6">
+              <h2 className="text-xl font-semibold mb-4">PayHero API Configuration (M-Pesa STK Push)</h2>
+              <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg space-y-3">
+                <p className="text-sm">
+                  <strong>Automatic M-Pesa payments are now enabled!</strong>
                 </p>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Business Number (Till/Paybill)</Label>
-                    <Input
-                      value={paymentMethods.mpesa.businessNumber}
-                      onChange={(e) =>
-                        setPaymentMethods({
-                          ...paymentMethods,
-                          mpesa: { ...paymentMethods.mpesa, businessNumber: e.target.value },
-                        })
-                      }
-                      placeholder="123456"
-                    />
-                  </div>
-                  <div>
-                    <Label>Account Name</Label>
-                    <Input
-                      value={paymentMethods.mpesa.accountName}
-                      onChange={(e) =>
-                        setPaymentMethods({
-                          ...paymentMethods,
-                          mpesa: { ...paymentMethods.mpesa, accountName: e.target.value },
-                        })
-                      }
-                      placeholder="Earnify"
-                    />
-                  </div>
-                </div>
-              </Card>
+                <p className="text-sm text-muted-foreground">
+                  To activate PayHero M-Pesa STK Push, add the following environment variables in your Vercel project:
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="glass p-2 rounded">
+                    <code className="text-primary">PAYHERO_API_KEY</code> - Your PayHero API key (from PayHero
+                    dashboard)
+                  </li>
+                  <li className="glass p-2 rounded">
+                    <code className="text-primary">PAYHERO_CHANNEL_ID</code> - Your Payment Channel ID (e.g., 133)
+                  </li>
+                </ul>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Get these credentials from: PayHero Dashboard → Payment Channels → My Payment Channels
+                </p>
+              </div>
+            </Card>
 
-              <Card className="glass-card p-6">
-                <h2 className="text-xl font-semibold mb-4">Bank Details</h2>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Bank Name</Label>
-                    <Input
-                      value={paymentMethods.bank.bankName}
-                      onChange={(e) =>
-                        setPaymentMethods({
-                          ...paymentMethods,
-                          bank: { ...paymentMethods.bank, bankName: e.target.value },
-                        })
-                      }
-                      placeholder="Equity Bank"
-                    />
-                  </div>
-                  <div>
-                    <Label>Account Number</Label>
-                    <Input
-                      value={paymentMethods.bank.accountNumber}
-                      onChange={(e) =>
-                        setPaymentMethods({
-                          ...paymentMethods,
-                          bank: { ...paymentMethods.bank, accountNumber: e.target.value },
-                        })
-                      }
-                      placeholder="0123456789"
-                    />
-                  </div>
-                  <div>
-                    <Label>Account Name</Label>
-                    <Input
-                      value={paymentMethods.bank.accountName}
-                      onChange={(e) =>
-                        setPaymentMethods({
-                          ...paymentMethods,
-                          bank: { ...paymentMethods.bank, accountName: e.target.value },
-                        })
-                      }
-                      placeholder="Earnify Ltd"
-                    />
-                  </div>
+            <Card className="glass-card p-6">
+              <h2 className="text-xl font-semibold mb-4">M-Pesa Details (Manual Fallback)</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                These details are shown to users for manual bank transfers if automatic payments are unavailable
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <Label>Business Number (Till/Paybill)</Label>
+                  <Input
+                    value={paymentMethods.mpesa.businessNumber}
+                    onChange={(e) =>
+                      setPaymentMethods({
+                        ...paymentMethods,
+                        mpesa: { ...paymentMethods.mpesa, businessNumber: e.target.value },
+                      })
+                    }
+                    placeholder="123456"
+                  />
                 </div>
-              </Card>
+                <div>
+                  <Label>Account Name</Label>
+                  <Input
+                    value={paymentMethods.mpesa.accountName}
+                    onChange={(e) =>
+                      setPaymentMethods({
+                        ...paymentMethods,
+                        mpesa: { ...paymentMethods.mpesa, accountName: e.target.value },
+                      })
+                    }
+                    placeholder="Earnify"
+                  />
+                </div>
+              </div>
+            </Card>
 
-              <Button onClick={handleSavePaymentMethods} disabled={loading}>
-                <DollarSign className="w-4 h-4 mr-2" />
-                {loading ? "Saving..." : "Save Payment Methods"}
-              </Button>
-            </div>
+            <Card className="glass-card p-6">
+              <h2 className="text-xl font-semibold mb-4">Bank Details</h2>
+              <div className="space-y-4">
+                <div>
+                  <Label>Bank Name</Label>
+                  <Input
+                    value={paymentMethods.bank.bankName}
+                    onChange={(e) =>
+                      setPaymentMethods({
+                        ...paymentMethods,
+                        bank: { ...paymentMethods.bank, bankName: e.target.value },
+                      })
+                    }
+                    placeholder="Equity Bank"
+                  />
+                </div>
+                <div>
+                  <Label>Account Number</Label>
+                  <Input
+                    value={paymentMethods.bank.accountNumber}
+                    onChange={(e) =>
+                      setPaymentMethods({
+                        ...paymentMethods,
+                        bank: { ...paymentMethods.bank, accountNumber: e.target.value },
+                      })
+                    }
+                    placeholder="0123456789"
+                  />
+                </div>
+                <div>
+                  <Label>Account Name</Label>
+                  <Input
+                    value={paymentMethods.bank.accountName}
+                    onChange={(e) =>
+                      setPaymentMethods({
+                        ...paymentMethods,
+                        bank: { ...paymentMethods.bank, accountName: e.target.value },
+                      })
+                    }
+                    placeholder="Earnify Ltd"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <Button onClick={handleSavePaymentMethods} disabled={loading}>
+              <DollarSign className="w-4 h-4 mr-2" />
+              {loading ? "Saving..." : "Save Payment Methods"}
+            </Button>
           </TabsContent>
 
           <TabsContent value="social">

@@ -11,8 +11,41 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     console.log("[v0] Amount:", amount)
     console.log("[v0] Phone:", phoneNumber)
 
-    const PAYHERO_BASIC_AUTH_TOKEN = process.env.PAYHERO_API_KEY
-    const PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID
+    const cookieStore = await cookies()
+    const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+            } catch {}
+          },
+        },
+      },
+    )
+
+    const { data: payHeroConfigData, error: configError } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payHeroConfig")
+      .single()
+
+    if (configError || !payHeroConfigData?.value) {
+      console.error("[v0] PayHero config not found:", configError)
+      return {
+        success: false,
+        error: "Payment gateway not configured. Please contact admin to configure PayHero credentials.",
+      }
+    }
+
+    const payHeroConfig = payHeroConfigData.value
+    const PAYHERO_BASIC_AUTH_TOKEN = payHeroConfig.basicAuthToken
+    const PAYHERO_CHANNEL_ID = payHeroConfig.channelId
 
     console.log("[v0] PayHero Basic Auth Token exists:", !!PAYHERO_BASIC_AUTH_TOKEN)
     console.log("[v0] PayHero Channel ID:", PAYHERO_CHANNEL_ID)
@@ -21,8 +54,7 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
       console.error("[v0] Missing PayHero credentials")
       return {
         success: false,
-        error:
-          "Payment gateway not configured. Contact admin to add PAYHERO_API_KEY (Basic Auth Token) and PAYHERO_CHANNEL_ID.",
+        error: "Payment gateway credentials incomplete. Contact admin.",
       }
     }
 
@@ -63,24 +95,6 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     console.log("[v0] Formatted phone for PayHero:", formattedPhone)
 
     console.log("[v0] Creating transaction record...")
-
-    const cookieStore = await cookies()
-    const supabaseAdmin = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-            } catch {}
-          },
-        },
-      },
-    )
 
     const { data: transaction, error: txError } = await supabaseAdmin
       .from("transactions")
