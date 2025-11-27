@@ -11,17 +11,18 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     console.log("[v0] Amount:", amount)
     console.log("[v0] Phone:", phoneNumber)
 
-    const PAYHERO_API_KEY = process.env.PAYHERO_API_KEY
+    const PAYHERO_BASIC_AUTH_TOKEN = process.env.PAYHERO_API_KEY
     const PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID
 
-    console.log("[v0] PayHero API Key exists:", !!PAYHERO_API_KEY)
+    console.log("[v0] PayHero Basic Auth Token exists:", !!PAYHERO_BASIC_AUTH_TOKEN)
     console.log("[v0] PayHero Channel ID:", PAYHERO_CHANNEL_ID)
 
-    if (!PAYHERO_API_KEY || !PAYHERO_CHANNEL_ID) {
+    if (!PAYHERO_BASIC_AUTH_TOKEN || !PAYHERO_CHANNEL_ID) {
       console.error("[v0] Missing PayHero credentials")
       return {
         success: false,
-        error: "Payment gateway not configured. Contact admin to add PAYHERO_API_KEY and PAYHERO_CHANNEL_ID.",
+        error:
+          "Payment gateway not configured. Contact admin to add PAYHERO_API_KEY (Basic Auth Token) and PAYHERO_CHANNEL_ID.",
       }
     }
 
@@ -121,14 +122,13 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
 
     console.log("[v0] PayHero payload:", JSON.stringify(payload, null, 2))
 
-    const authToken = Buffer.from(`${PAYHERO_API_KEY}:`).toString("base64")
-    console.log("[v0] Auth token created (Basic auth)")
+    console.log("[v0] Using PayHero-provided Basic Auth Token")
 
     // Initiate STK Push with PayHero
     const response = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
       method: "POST",
       headers: {
-        Authorization: `Basic ${authToken}`,
+        Authorization: PAYHERO_BASIC_AUTH_TOKEN,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
