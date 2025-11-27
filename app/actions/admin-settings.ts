@@ -100,3 +100,45 @@ export async function saveSocialProofSettings(socialProofSettings: any) {
     return { success: false, error: err?.message || "Unknown error" }
   }
 }
+
+export async function saveMpesaConfig(mpesaConfig: any) {
+  try {
+    const supabase = await createAdminClient()
+
+    console.log("[v0] Saving M-Pesa config with service role key")
+
+    // Get current app settings
+    const { data: currentSettings } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "appSettings")
+      .single()
+
+    // Merge M-Pesa config with existing settings
+    const updatedSettings = {
+      ...(currentSettings?.value || {}),
+      mpesaConfig,
+    }
+
+    const { error } = await supabase.from("app_settings").upsert(
+      {
+        key: "appSettings",
+        value: updatedSettings,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    )
+
+    if (error) {
+      console.log("[v0] M-Pesa config error:", error)
+      return { success: false, error: error.message || JSON.stringify(error) }
+    }
+
+    revalidateTag("app-settings")
+    console.log("[v0] M-Pesa config saved successfully")
+    return { success: true }
+  } catch (err: any) {
+    console.log("[v0] Exception error:", err)
+    return { success: false, error: err?.message || "Unknown error" }
+  }
+}

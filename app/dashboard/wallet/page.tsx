@@ -14,6 +14,7 @@ import { Wallet, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle, XCircle, Lo
 import { motion } from "framer-motion"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getUserProfile } from "@/lib/supabase/queries"
+import { initiateStkPush } from "@/app/actions/mpesa-stk-push"
 
 export default function WalletPage() {
   const router = useRouter()
@@ -23,7 +24,8 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [depositAmount, setDepositAmount] = useState("")
-  const [depositMethod, setDepositMethod] = useState<"mpesa" | "bank">("mpesa")
+  const [depositMethod, setDepositMethod] = useState<"mpesa_stk" | "mpesa_paybill" | "bank">("mpesa_stk")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawMethod, setWithdrawMethod] = useState<"mpesa" | "bank">("mpesa")
   const [processing, setProcessing] = useState(false)
@@ -74,7 +76,49 @@ export default function WalletPage() {
       return
     }
 
-    if (depositMethod === "mpesa") {
+    if (depositMethod === "mpesa_stk") {
+      if (!phoneNumber) {
+        toast({
+          title: "Phone number required",
+          description: "Please enter your M-Pesa phone number",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setProcessing(true)
+      try {
+        const result = await initiateStkPush(phoneNumber, amount, user.id)
+
+        if (result.success) {
+          toast({
+            title: "STK Push Sent",
+            description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
+          })
+          setDepositAmount("")
+          setPhoneNumber("")
+          setTimeout(() => loadUser(), 2000)
+        } else {
+          toast({
+            title: "Payment Failed",
+            description: result.error || "Failed to initiate payment. Please try again.",
+            variant: "destructive",
+          })
+        }
+      } catch (error: any) {
+        console.error("[v0] STK Push error:", error)
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setProcessing(false)
+      }
+      return
+    }
+
+    if (depositMethod === "mpesa_paybill") {
       setShowPaybillInstructions(true)
       return
     }
@@ -223,7 +267,6 @@ export default function WalletPage() {
           <p className="text-muted-foreground">Manage your deposits and withdrawals</p>
         </div>
 
-        {/* Balance Card */}
         <Card className="glass-card p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -236,7 +279,6 @@ export default function WalletPage() {
           </div>
         </Card>
 
-        {/* Deposit & Withdraw Tabs */}
         <Tabs defaultValue="deposit" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="deposit">Deposit</TabsTrigger>
@@ -253,16 +295,39 @@ export default function WalletPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mpesa">
+                      <SelectItem value="mpesa_stk">
                         <div className="flex items-center gap-2">
                           <Smartphone className="w-4 h-4" />
-                          M-Pesa Paybill
+                          M-Pesa (Automatic STK Push)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="mpesa_paybill">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" />
+                          M-Pesa Paybill (Manual)
                         </div>
                       </SelectItem>
                       <SelectItem value="bank">Bank Transfer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {depositMethod === "mpesa_stk" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="phone-number">M-Pesa Phone Number</Label>
+                    <Input
+                      id="phone-number"
+                      type="tel"
+                      placeholder="0712345678"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="bg-background/50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter the phone number registered with M-Pesa to receive the STK Push prompt
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="deposit-amount">Amount (KSh)</Label>
@@ -276,7 +341,20 @@ export default function WalletPage() {
                   />
                 </div>
 
-                {depositMethod === "mpesa" && (
+                {depositMethod === "mpesa_stk" && (
+                  <div className="bg-primary/10 p-4 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Automatic M-Pesa Payment:</p>
+                    <ol className="text-sm space-y-1 list-decimal list-inside">
+                      <li>Enter your M-Pesa phone number and amount</li>
+                      <li>Click "Send STK Push"</li>
+                      <li>You'll receive a prompt on your phone</li>
+                      <li>Enter your M-Pesa PIN to complete payment</li>
+                      <li>Your wallet will be credited automatically</li>
+                    </ol>
+                  </div>
+                )}
+
+                {depositMethod === "mpesa_paybill" && (
                   <div className="bg-primary/10 p-4 rounded-lg space-y-2">
                     <p className="text-sm font-medium">How to deposit via M-Pesa Paybill:</p>
                     <ol className="text-sm space-y-1 list-decimal list-inside">
@@ -313,7 +391,11 @@ export default function WalletPage() {
                   ) : (
                     <>
                       <ArrowDownCircle className="w-4 h-4 mr-2" />
-                      {depositMethod === "mpesa" ? "View Payment Instructions" : "Request Deposit"}
+                      {depositMethod === "mpesa_stk"
+                        ? "Send STK Push"
+                        : depositMethod === "mpesa_paybill"
+                          ? "View Payment Instructions"
+                          : "Request Deposit"}
                     </>
                   )}
                 </Button>
@@ -419,7 +501,6 @@ export default function WalletPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Transaction History */}
         <Card className="glass-card p-6">
           <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
 

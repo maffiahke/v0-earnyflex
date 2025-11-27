@@ -12,7 +12,13 @@ import { useToast } from "@/hooks/use-toast"
 import { Settings, DollarSign, Gift, MessageSquare, Plus, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useAppSettings } from "@/lib/hooks/use-app-settings"
-import { saveAppSettings, savePaymentMethods, saveSocialProofSettings } from "@/app/actions/admin-settings"
+import {
+  saveAppSettings,
+  savePaymentMethods,
+  saveSocialProofSettings,
+  saveMpesaConfig,
+} from "@/app/actions/admin-settings"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
 export default function AdminSettingsPage() {
   const { toast } = useToast()
@@ -21,15 +27,17 @@ export default function AdminSettingsPage() {
     appSettings: liveSettings,
     paymentMethods: livePaymentMethods,
     socialProofSettings: liveSocialProofSettings,
-    payHeroConfig: livePayHeroConfig,
   } = useAppSettings()
 
   const [appSettings, setAppSettings] = useState(liveSettings)
   const [paymentMethods, setPaymentMethods] = useState(livePaymentMethods)
   const [socialProofSettings, setSocialProofSettings] = useState(liveSocialProofSettings)
-  const [payHeroConfig, setPayHeroConfig] = useState({
-    basicAuthToken: "",
-    channelId: "445",
+  const [mpesaConfig, setMpesaConfig] = useState({
+    consumerKey: "",
+    consumerSecret: "",
+    shortcode: "",
+    passkey: "",
+    environment: "sandbox" as "sandbox" | "production",
   })
 
   const [loading, setLoading] = useState(false)
@@ -50,10 +58,10 @@ export default function AdminSettingsPage() {
   }, [liveSocialProofSettings])
 
   useEffect(() => {
-    if (livePayHeroConfig) {
-      setPayHeroConfig(livePayHeroConfig)
+    if (liveSettings.mpesaConfig) {
+      setMpesaConfig(liveSettings.mpesaConfig)
     }
-  }, [livePayHeroConfig])
+  }, [liveSettings])
 
   const handleSaveAppSettings = async () => {
     setLoading(true)
@@ -201,6 +209,35 @@ export default function AdminSettingsPage() {
     toast({ title: "Message Removed", description: "Message removed from social proof list" })
   }
 
+  const handleSaveMpesaConfig = async () => {
+    setLoading(true)
+    try {
+      const result = await saveMpesaConfig(mpesaConfig)
+
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: "Failed to save M-Pesa configuration: " + (result.error || "Unknown error"),
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "M-Pesa Configuration Saved",
+        description: "M-Pesa STK Push settings have been updated successfully",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An error occurred while saving M-Pesa configuration",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -334,59 +371,86 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5" />
-                  PayHero M-Pesa Configuration
+                  M-Pesa STK Push Configuration
                 </CardTitle>
                 <CardDescription>
-                  Configure PayHero API credentials for automatic M-Pesa STK Push payments
+                  Configure Safaricom Daraja API credentials for automatic M-Pesa payments
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="payhero-token">Basic Auth Token</Label>
-                  <Textarea
-                    id="payhero-token"
-                    placeholder="Paste the complete Basic Auth Token from PayHero dashboard (starts with 'Basic ')"
-                    value={payHeroConfig.basicAuthToken}
-                    onChange={(e) => setPayHeroConfig({ ...payHeroConfig, basicAuthToken: e.target.value })}
-                    rows={4}
-                    className="font-mono text-sm"
+                  <Label htmlFor="mpesa-consumer-key">Consumer Key</Label>
+                  <Input
+                    id="mpesa-consumer-key"
+                    type="text"
+                    placeholder="Your Daraja Consumer Key"
+                    value={mpesaConfig.consumerKey}
+                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, consumerKey: e.target.value })}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Copy the "Basic Auth Token" from your PayHero dashboard (app.payhero.co.ke) and paste it here
-                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="payhero-channel">Account ID / Channel ID</Label>
+                  <Label htmlFor="mpesa-consumer-secret">Consumer Secret</Label>
                   <Input
-                    id="payhero-channel"
-                    type="text"
-                    placeholder="445"
-                    value={payHeroConfig.channelId}
-                    onChange={(e) => setPayHeroConfig({ ...payHeroConfig, channelId: e.target.value })}
+                    id="mpesa-consumer-secret"
+                    type="password"
+                    placeholder="Your Daraja Consumer Secret"
+                    value={mpesaConfig.consumerSecret}
+                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, consumerSecret: e.target.value })}
                   />
-                  <p className="text-sm text-muted-foreground">Your PayHero Account ID (shown in PayHero dashboard)</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-shortcode">Business Shortcode</Label>
+                  <Input
+                    id="mpesa-shortcode"
+                    type="text"
+                    placeholder="174379 (sandbox) or your paybill"
+                    value={mpesaConfig.shortcode}
+                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, shortcode: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-passkey">Passkey</Label>
+                  <Textarea
+                    id="mpesa-passkey"
+                    placeholder="Your Lipa Na M-Pesa Online Passkey"
+                    value={mpesaConfig.passkey}
+                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, passkey: e.target.value })}
+                    rows={3}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-environment">Environment</Label>
+                  <Select
+                    value={mpesaConfig.environment}
+                    onValueChange={(value: "sandbox" | "production") =>
+                      setMpesaConfig({ ...mpesaConfig, environment: value })
+                    }
+                  >
+                    <SelectTrigger id="mpesa-environment">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+                      <SelectItem value="production">Production (Live)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
-                  <p className="text-sm font-medium mb-2">Configuration Status:</p>
-                  <div className="space-y-1">
-                    <p className="text-sm flex items-center gap-2">
-                      {payHeroConfig.basicAuthToken ? (
-                        <span className="text-green-600">✓</span>
-                      ) : (
-                        <span className="text-red-600">✗</span>
-                      )}
-                      Basic Auth Token: {payHeroConfig.basicAuthToken ? "Configured" : "Not set"}
-                    </p>
-                    <p className="text-sm flex items-center gap-2">
-                      {payHeroConfig.channelId ? (
-                        <span className="text-green-600">✓</span>
-                      ) : (
-                        <span className="text-red-600">✗</span>
-                      )}
-                      Channel ID: {payHeroConfig.channelId || "Not set"}
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium mb-2">Get your credentials from:</p>
+                  <a
+                    href="https://developer.safaricom.co.ke/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Safaricom Daraja Developer Portal →
+                  </a>
                 </div>
+                <Button onClick={handleSaveMpesaConfig} disabled={loading} className="w-full">
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  {loading ? "Saving..." : "Save M-Pesa Configuration"}
+                </Button>
               </CardContent>
             </Card>
 

@@ -1,7 +1,6 @@
 "use client"
 
 import { useRef } from "react"
-
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import type { RealtimeChannel } from "@supabase/supabase-js"
@@ -16,6 +15,13 @@ export interface AppSettings {
   maxWithdrawal: number
   minDeposit: number
   maxDeposit: number
+  mpesaConfig?: {
+    consumerKey: string
+    consumerSecret: string
+    shortcode: string
+    passkey: string
+    environment: "sandbox" | "production"
+  }
 }
 
 export interface PaymentMethods {
@@ -47,6 +53,13 @@ export function useAppSettings() {
     maxWithdrawal: 50000,
     minDeposit: 100,
     maxDeposit: 100000,
+    mpesaConfig: {
+      consumerKey: "",
+      consumerSecret: "",
+      shortcode: "",
+      passkey: "",
+      environment: "sandbox",
+    },
   })
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethods>({
