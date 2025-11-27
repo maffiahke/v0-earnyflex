@@ -133,9 +133,9 @@ export async function initiateMpesaPayment(phoneNumber: string, amount: number, 
     console.log("[v0] Calling PayHero API...")
 
     const payload = {
-      amount: amount,
+      amount: Math.floor(amount), // Ensure amount is an integer
       phone_number: formattedPhone,
-      channel_id: Number.parseInt(PAYHERO_CHANNEL_ID),
+      channel_id: Number.parseInt(PAYHERO_CHANNEL_ID), // Explicitly parse as integer
       provider: "m-pesa",
       external_reference: transaction.id,
       callback_url: callbackUrl,
