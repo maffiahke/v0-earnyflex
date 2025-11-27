@@ -32,7 +32,7 @@ export async function GET() {
     const response = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${PAYHERO_API_KEY}`,
+        Authorization: PAYHERO_API_KEY, // Removed Bearer prefix - PayHero expects API key directly
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
