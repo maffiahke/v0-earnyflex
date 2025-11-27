@@ -111,17 +111,26 @@ export default function WalletPage() {
           }, 2000)
         } else {
           console.error("[v0] Payment failed:", result.error)
+          console.error("[v0] PayHero response details:", result.details)
+
+          const errorMessage = result.error || "Unknown error occurred"
 
           // Display the full error message from PayHero
           toast({
             title: "Payment Failed",
-            description: result.error || "Unknown error occurred",
+            description: errorMessage,
             variant: "destructive",
             duration: 10000, // Show for 10 seconds
           })
 
-          // Also alert the error for debugging
-          alert(`PayHero Error: ${result.error}\n\nCheck browser console for more details.`)
+          // Also alert the detailed error for debugging including PayHero response
+          if (result.details) {
+            alert(
+              `PayHero Error:\n${errorMessage}\n\nPayHero Response:\n${JSON.stringify(result.details, null, 2)}\n\nCheck browser console for more details.`,
+            )
+          } else {
+            alert(`PayHero Error:\n${errorMessage}\n\nCheck browser console for more details.`)
+          }
         }
       } catch (error: any) {
         console.error("[v0] Exception during payment:", error)
