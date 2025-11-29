@@ -233,7 +233,7 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="font-semibold text-lg">Daily Check-in</h3>
                   <p className="text-sm text-muted-foreground">
-                    {canCheckIn() ? "Click to earn KSh 25" : "Come back tomorrow!"}
+                    {canCheckIn() ? "Click to earn KSh 5" : "Come back tomorrow!"}
                   </p>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold">Listen to Music</h3>
-                    <p className="text-sm text-muted-foreground">Earn up to KSh 75</p>
+                    <p className="text-sm text-muted-foreground">Earn up to KSh 30</p>
                   </div>
                 </div>
               </Card>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold">Refer Friends</h3>
-                    <p className="text-sm text-muted-foreground">Earn up to KSh 250</p>
+                    <p className="text-sm text-muted-foreground">Earn up to KSh 100</p>
                   </div>
                 </div>
               </Card>
