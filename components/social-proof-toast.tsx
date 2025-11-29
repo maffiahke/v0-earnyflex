@@ -4,60 +4,41 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2 } from "lucide-react"
 import { playSound, initAudio } from "@/lib/sounds"
-
-const fakeNames = [
-  "John from Nairobi",
-  "Mary from Mombasa",
-  "Peter from Kisumu",
-  "Jane from Nakuru",
-  "David from Eldoret",
-  "Grace from Thika",
-  "Michael from Machakos",
-  "Sarah from Nyeri",
-  "James from Kakamega",
-  "Lucy from Kiambu",
-  "Daniel from Ruiru",
-  "Faith from Naivasha",
-]
-
-const counties = [
-  "Nairobi",
-  "Mombasa",
-  "Kisumu",
-  "Nakuru",
-  "Eldoret",
-  "Thika",
-  "Machakos",
-  "Nyeri",
-  "Kakamega",
-  "Kiambu",
-  "Ruiru",
-  "Naivasha",
-]
-
-const earningMessages = [
-  "just earned KSh 50 from music",
-  "just earned KSh 30 from trivia",
-  "just earned KSh 100 referral bonus",
-  "just withdrew KSh 500",
-  "just activated their account",
-  "just earned KSh 25 from daily check-in",
-]
+import { useAppSettings } from "@/lib/hooks/use-app-settings"
 
 export function SocialProofToast() {
   const [show, setShow] = useState(false)
   const [message, setMessage] = useState({ name: "", action: "" })
+  const { socialProofSettings, appSettings } = useAppSettings()
 
   useEffect(() => {
     initAudio()
 
     const showToast = () => {
-      const randomName = fakeNames[Math.floor(Math.random() * fakeNames.length)]
+      const names =
+        socialProofSettings.fakeNames.length > 0 ? socialProofSettings.fakeNames : ["John K.", "Mary W.", "Peter M."]
+
+      const counties =
+        socialProofSettings.counties.length > 0 ? socialProofSettings.counties : ["Nairobi", "Mombasa", "Kisumu"]
+
+      const randomName = names[Math.floor(Math.random() * names.length)]
+      const randomCounty = counties[Math.floor(Math.random() * counties.length)]
+      const fullName = `${randomName} from ${randomCounty}`
+
+      const earningMessages = [
+        "just earned KSh 30 from music",
+        "just earned KSh 30 from trivia",
+        `just earned KSh ${appSettings.referralBonus} referral bonus`,
+        "just activated their account with KSh 500",
+        "just activated their account with KSh 1000",
+        "just activated their account with KSh 2500",
+      ]
+
       const randomAction = earningMessages[Math.floor(Math.random() * earningMessages.length)]
 
-      setMessage({ name: randomName, action: randomAction })
+      setMessage({ name: fullName, action: randomAction })
       setShow(true)
-      console.log("[v0] Showing toast, playing clap sound")
+      console.log("[v0] Showing social proof toast")
       playSound("notification")
 
       setTimeout(() => setShow(false), 4000)
@@ -71,7 +52,7 @@ export function SocialProofToast() {
       clearTimeout(initialTimeout)
       clearInterval(interval)
     }
-  }, [])
+  }, [socialProofSettings, appSettings])
 
   return (
     <AnimatePresence>
