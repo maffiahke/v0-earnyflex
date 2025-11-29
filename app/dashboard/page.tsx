@@ -52,9 +52,11 @@ export default function DashboardPage() {
       setUser(profile)
 
       const { getTotalEarningsByType, getTotalDeposits } = await import("@/lib/supabase/queries")
-      const musicEarn = await getTotalEarningsByType(authUser.id, "music")
-      const triviaEarn = await getTotalEarningsByType(authUser.id, "trivia")
-      const deposits = await getTotalDeposits(authUser.id)
+      const [musicEarn, triviaEarn, deposits] = await Promise.all([
+        getTotalEarningsByType(authUser.id, "music"),
+        getTotalEarningsByType(authUser.id, "trivia"),
+        getTotalDeposits(authUser.id),
+      ])
 
       setMusicEarnings(musicEarn)
       setTriviaEarnings(triviaEarn)

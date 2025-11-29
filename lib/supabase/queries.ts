@@ -122,13 +122,23 @@ export async function completeTask(userId: string, reward: number, taskType: "mu
   const supabase = createBrowserClient()
   const today = new Date().toISOString().split("T")[0]
 
+  // First get current user data
+  const { data: user, error: fetchError } = await supabase
+    .from("users")
+    .select("wallet_balance, total_earnings")
+    .eq("id", userId)
+    .single()
+
+  if (fetchError) throw fetchError
+
   const updateField = taskType === "music" ? "last_music_task_date" : "last_trivia_task_date"
 
+  // Update with calculated values
   const { error } = await supabase
     .from("users")
     .update({
-      wallet_balance: supabase.raw(`wallet_balance + ${reward}`),
-      total_earnings: supabase.raw(`total_earnings + ${reward}`),
+      wallet_balance: (user.wallet_balance || 0) + reward,
+      total_earnings: (user.total_earnings || 0) + reward,
       [updateField]: today,
     })
     .eq("id", userId)
@@ -338,12 +348,12 @@ export async function getTotalEarningsByType(userId: string, type: "music" | "tr
     .from("transactions")
     .select("amount")
     .eq("user_id", userId)
-    .like("description", `%${type}%`)
     .eq("type", "earning")
+    .ilike("description", `%${type}%`)
 
   if (error) throw error
 
-  const total = (data || []).reduce((sum, t) => sum + (t.amount || 0), 0)
+  const total = (data || []).reduce((sum, t) => sum + Number(t.amount || 0), 0)
   return total
 }
 
@@ -358,6 +368,6 @@ export async function getTotalDeposits(userId: string) {
 
   if (error) throw error
 
-  const total = (data || []).reduce((sum, t) => sum + (t.amount || 0), 0)
+  const total = (data || []).reduce((sum, t) => sum + Number(t.amount || 0), 0)
   return total
 }

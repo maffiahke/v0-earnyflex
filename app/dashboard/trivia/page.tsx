@@ -91,16 +91,17 @@ export default function TriviaPage() {
 
         if (!authUser) return
 
-        await completeTask(authUser.id, Number(currentQuestion.reward), "trivia")
-
-        await supabase.from("transactions").insert({
-          user_id: authUser.id,
-          type: "earning",
-          amount: currentQuestion.reward,
-          status: "completed",
-          description: `Answered trivia: ${currentQuestion.question}`,
-          created_at: new Date().toISOString(),
-        })
+        await Promise.all([
+          completeTask(authUser.id, Number(currentQuestion.reward), "trivia"),
+          supabase.from("transactions").insert({
+            user_id: authUser.id,
+            type: "earning",
+            amount: currentQuestion.reward,
+            status: "completed",
+            description: `Answered trivia: ${currentQuestion.question}`,
+            created_at: new Date().toISOString(),
+          }),
+        ])
 
         toast({
           title: "Correct!",
@@ -108,8 +109,17 @@ export default function TriviaPage() {
         })
 
         setCanDoToday(false)
+
+        const profile = await getUserProfile(authUser.id)
+        setUser(profile)
       } catch (error) {
         console.error("Error:", error)
+        toast({
+          title: "Error",
+          description: "Failed to record your earnings. Please contact support.",
+          variant: "destructive",
+        })
+        setQuestions((prev) => [...prev, currentQuestion])
       }
     } else {
       playSound("error")

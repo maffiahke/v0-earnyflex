@@ -142,16 +142,17 @@ export default function MusicTasksPage() {
 
       if (!authUser) return
 
-      await completeTask(authUser.id, task.reward, "music")
-
-      await supabase.from("transactions").insert({
-        user_id: authUser.id,
-        type: "earning",
-        amount: task.reward,
-        status: "completed",
-        description: `Completed music task: ${task.title}`,
-        created_at: new Date().toISOString(),
-      })
+      await Promise.all([
+        completeTask(authUser.id, task.reward, "music"),
+        supabase.from("transactions").insert({
+          user_id: authUser.id,
+          type: "earning",
+          amount: task.reward,
+          status: "completed",
+          description: `Completed music task: ${task.title}`,
+          created_at: new Date().toISOString(),
+        }),
+      ])
 
       playSound("success")
 
@@ -167,6 +168,9 @@ export default function MusicTasksPage() {
       })
 
       setCanDoToday(false)
+
+      const profile = await getUserProfile(authUser.id)
+      setUser(profile)
     } catch (error) {
       console.error("Error completing task:", error)
       toast({
@@ -174,6 +178,11 @@ export default function MusicTasksPage() {
         description: "Failed to complete task",
         variant: "destructive",
       })
+      setTasks((prev) => [...prev, task])
+      setIsPlaying(false)
+      setShowSuccess(false)
+      setCurrentTask(null)
+      return
     }
 
     setTimeout(() => {
