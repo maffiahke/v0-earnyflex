@@ -60,6 +60,49 @@ export async function getTriviaQuestions() {
   return data || []
 }
 
+export async function getAvailableTriviaQuestions(userId: string) {
+  const supabase = createBrowserClient()
+  const today = new Date().toISOString().split("T")[0]
+
+  // Get today's completed trivia questions
+  const { data: completions } = await supabase
+    .from("user_task_completions")
+    .select("task_id")
+    .eq("user_id", userId)
+    .eq("task_type", "trivia")
+    .gte("completed_at", `${today}T00:00:00`)
+    .lte("completed_at", `${today}T23:59:59`)
+
+  const completedIds = completions?.map((c) => c.task_id) || []
+
+  // Get all active trivia questions not completed today
+  const { data, error } = await supabase
+    .from("trivia_questions")
+    .select("*")
+    .eq("is_active", true)
+    .not("id", "in", `(${completedIds.length > 0 ? completedIds.join(",") : "00000000-0000-0000-0000-000000000000"})`)
+    .order("created_at", { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getTodayTriviaCount(userId: string) {
+  const supabase = createBrowserClient()
+  const today = new Date().toISOString().split("T")[0]
+
+  const { data, error } = await supabase
+    .from("user_task_completions")
+    .select("id", { count: "exact" })
+    .eq("user_id", userId)
+    .eq("task_type", "trivia")
+    .gte("completed_at", `${today}T00:00:00`)
+    .lte("completed_at", `${today}T23:59:59`)
+
+  if (error) throw error
+  return data?.length || 0
+}
+
 export async function getActivationPackages() {
   const supabase = createBrowserClient()
   const { data, error } = await supabase
@@ -118,7 +161,7 @@ export async function canDoTask(userId: string, taskType: "music" | "trivia") {
   return !lastTaskDate || lastTaskDate !== today
 }
 
-export async function completeTask(userId: string, reward: number, taskType: "music" | "trivia") {
+export async function completeTask(userId: string, reward: number, taskType: "music" | "trivia", taskId?: string) {
   const supabase = createBrowserClient()
   const today = new Date().toISOString().split("T")[0]
 
@@ -144,6 +187,16 @@ export async function completeTask(userId: string, reward: number, taskType: "mu
     .eq("id", userId)
 
   if (error) throw error
+
+  // Record task completion in user_task_completions
+  if (taskId) {
+    await supabase.from("user_task_completions").insert({
+      user_id: userId,
+      task_id: taskId,
+      task_type: taskType,
+      completed_at: new Date().toISOString(),
+    })
+  }
 }
 
 export async function getAllUsers() {

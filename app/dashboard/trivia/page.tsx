@@ -11,7 +11,9 @@ import { Brain, CheckCircle, XCircle, Lock } from "lucide-react"
 import { motion } from "framer-motion"
 import confetti from "canvas-confetti"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { getUserProfile, getTriviaQuestions, canDoTask, completeTask } from "@/lib/supabase/queries"
+import { getUserProfile, getAvailableTriviaQuestions, getTodayTriviaCount, completeTask } from "@/lib/supabase/queries"
+
+const DAILY_TRIVIA_LIMIT = 2
 
 export default function TriviaPage() {
   const router = useRouter()
@@ -24,7 +26,7 @@ export default function TriviaPage() {
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [canDoToday, setCanDoToday] = useState(false)
+  const [todayCount, setTodayCount] = useState(0)
 
   useEffect(() => {
     loadData()
@@ -45,11 +47,13 @@ export default function TriviaPage() {
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
 
-      const triviaQuestions = await getTriviaQuestions()
-      setQuestions(triviaQuestions)
+      const [availableQuestions, count] = await Promise.all([
+        getAvailableTriviaQuestions(authUser.id),
+        getTodayTriviaCount(authUser.id),
+      ])
 
-      const canDo = await canDoTask(authUser.id, "trivia")
-      setCanDoToday(canDo)
+      setQuestions(availableQuestions)
+      setTodayCount(count)
 
       initAudio()
     } catch (error) {
@@ -92,7 +96,7 @@ export default function TriviaPage() {
         if (!authUser) return
 
         await Promise.all([
-          completeTask(authUser.id, Number(currentQuestion.reward), "trivia"),
+          completeTask(authUser.id, Number(currentQuestion.reward), "trivia", currentQuestion.id),
           supabase.from("transactions").insert({
             user_id: authUser.id,
             type: "earning",
@@ -108,7 +112,7 @@ export default function TriviaPage() {
           description: `You earned KSh ${currentQuestion.reward}`,
         })
 
-        setCanDoToday(false)
+        setTodayCount((prev) => prev + 1)
 
         const profile = await getUserProfile(authUser.id)
         setUser(profile)
@@ -148,23 +152,29 @@ export default function TriviaPage() {
 
   if (!user) return null
 
+  const dailyLimitReached = todayCount >= DAILY_TRIVIA_LIMIT
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Trivia Questions</h1>
-            <p className="text-muted-foreground">Answer correctly to earn money (once per day)</p>
+            <p className="text-muted-foreground">
+              Answer correctly to earn money ({todayCount}/{DAILY_TRIVIA_LIMIT} completed today)
+            </p>
           </div>
         </div>
 
-        {!canDoToday && !currentQuestion && (
+        {dailyLimitReached && !currentQuestion && (
           <Card className="glass-card p-6 border-accent/50">
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-accent" />
               <div>
                 <p className="font-semibold">Daily Limit Reached</p>
-                <p className="text-sm text-muted-foreground">Come back tomorrow to earn more</p>
+                <p className="text-sm text-muted-foreground">
+                  You've completed {DAILY_TRIVIA_LIMIT} trivias today. Come back tomorrow to earn more!
+                </p>
               </div>
             </div>
           </Card>
@@ -250,7 +260,7 @@ export default function TriviaPage() {
               </div>
             </Card>
           </motion.div>
-        ) : questions.length > 0 ? (
+        ) : questions.length > 0 && !dailyLimitReached ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {questions.map((question) => (
               <motion.div
@@ -275,13 +285,13 @@ export default function TriviaPage() {
               </motion.div>
             ))}
           </div>
-        ) : (
+        ) : !dailyLimitReached ? (
           <Card className="glass-card p-12 text-center">
             <Brain className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Questions Available</h3>
             <p className="text-muted-foreground">Check back later for more trivia questions</p>
           </Card>
-        )}
+        ) : null}
       </div>
     </DashboardLayout>
   )
