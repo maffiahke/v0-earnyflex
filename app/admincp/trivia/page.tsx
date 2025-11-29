@@ -12,6 +12,12 @@ import { useToast } from "@/hooks/use-toast"
 import { Brain, Plus, Pencil, Trash2, CheckCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createBrowserClient } from "@/lib/supabase/client"
+import {
+  createTriviaQuestion,
+  updateTriviaQuestion,
+  deleteTriviaQuestion,
+  deleteTriviaQuestions,
+} from "@/app/actions/admin-trivia"
 
 export default function AdminTriviaPage() {
   const router = useRouter()
@@ -30,7 +36,6 @@ export default function AdminTriviaPage() {
     options: ["", "", "", ""],
     correctAnswer: 0,
     reward: 30,
-    category: "",
   })
 
   useEffect(() => {
@@ -117,48 +122,35 @@ export default function AdminTriviaPage() {
       return
     }
 
-    const payload = {
-      question: formData.question,
-      options: formData.options,
-      correct_answer: formData.correctAnswer,
-      reward: formData.reward,
-      category: formData.category,
-      is_active: true,
+    const result = editingQuestion
+      ? await updateTriviaQuestion(editingQuestion, {
+          question: formData.question,
+          options: formData.options,
+          correctAnswer: formData.correctAnswer,
+          reward: formData.reward,
+        })
+      : await createTriviaQuestion({
+          question: formData.question,
+          options: formData.options,
+          correctAnswer: formData.correctAnswer,
+          reward: formData.reward,
+        })
+
+    if (result.error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.error,
+      })
+      return
     }
 
-    if (editingQuestion) {
-      const { error } = await supabaseRef.current.from("trivia_questions").update(payload).eq("id", editingQuestion)
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message,
-        })
-        return
-      }
-
-      toast({
-        title: "Trivia Question Updated",
-        description: "Question has been updated successfully",
-      })
-    } else {
-      const { error } = await supabaseRef.current.from("trivia_questions").insert([payload])
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message,
-        })
-        return
-      }
-
-      toast({
-        title: "Trivia Question Added",
-        description: "New question has been added successfully",
-      })
-    }
+    toast({
+      title: editingQuestion ? "Trivia Question Updated" : "Trivia Question Added",
+      description: editingQuestion
+        ? "Question has been updated successfully"
+        : "New question has been added successfully",
+    })
 
     setShowForm(false)
     setEditingQuestion(null)
@@ -167,7 +159,6 @@ export default function AdminTriviaPage() {
       options: ["", "", "", ""],
       correctAnswer: 0,
       reward: 30,
-      category: "",
     })
   }
 
@@ -178,20 +169,19 @@ export default function AdminTriviaPage() {
       options: question.options,
       correctAnswer: question.correct_answer || question.correctAnswer,
       reward: question.reward,
-      category: question.category,
     })
     setShowForm(true)
   }
 
   const handleDelete = async (questionId: string) => {
     if (confirm("Are you sure you want to delete this trivia question?")) {
-      const { error } = await supabaseRef.current.from("trivia_questions").delete().eq("id", questionId)
+      const result = await deleteTriviaQuestion(questionId)
 
-      if (error) {
+      if (result.error) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message,
+          description: result.error,
         })
         return
       }
@@ -214,13 +204,13 @@ export default function AdminTriviaPage() {
     }
 
     if (confirm(`Are you sure you want to delete ${selectedIds.length} question(s)?`)) {
-      const { error } = await supabaseRef.current.from("trivia_questions").delete().in("id", selectedIds)
+      const result = await deleteTriviaQuestions(selectedIds)
 
-      if (error) {
+      if (result.error) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message,
+          description: result.error,
         })
         return
       }
@@ -302,26 +292,15 @@ export default function AdminTriviaPage() {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Category</Label>
-                      <Input
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        placeholder="e.g., Geography, History"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>Reward (KSh)</Label>
-                      <Input
-                        type="number"
-                        value={formData.reward}
-                        onChange={(e) => setFormData({ ...formData, reward: Number(e.target.value) })}
-                        min="1"
-                        required
-                      />
-                    </div>
+                  <div>
+                    <Label>Reward (KSh)</Label>
+                    <Input
+                      type="number"
+                      value={formData.reward}
+                      onChange={(e) => setFormData({ ...formData, reward: Number(e.target.value) })}
+                      min="1"
+                      required
+                    />
                   </div>
 
                   <div className="flex gap-2">
@@ -337,7 +316,6 @@ export default function AdminTriviaPage() {
                           options: ["", "", "", ""],
                           correctAnswer: 0,
                           reward: 30,
-                          category: "",
                         })
                       }}
                     >
@@ -386,9 +364,6 @@ export default function AdminTriviaPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
-                            {question.category}
-                          </span>
                           <span className="text-sm text-success font-medium">KSh {question.reward}</span>
                         </div>
                         <h3 className="font-semibold mb-2">{question.question}</h3>

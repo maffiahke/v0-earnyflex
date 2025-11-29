@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Music, Plus, Pencil, Trash2, Clock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { createMusicTask, updateMusicTask, deleteMusicTask, deleteMusicTasks } from "@/app/actions/admin-music"
 
 export default function AdminMusicPage() {
   const router = useRouter()
@@ -107,72 +108,46 @@ export default function AdminMusicPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const payload = {
-      title: formData.title,
-      artist: formData.artist,
-      audio_url: formData.audioUrl,
-      duration: formData.duration,
-      reward: formData.reward,
-      is_active: true,
-    }
-
-    try {
-      if (editingTask) {
-        console.log("[v0] Updating music task:", editingTask)
-        const { error } = await supabaseRef.current.from("music_tasks").update(payload).eq("id", editingTask)
-
-        if (error) {
-          console.error("[v0] Update error:", error)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error.message,
-          })
-          return
-        }
-
-        toast({
-          title: "Music Task Updated",
-          description: "Task has been updated successfully",
+    const result = editingTask
+      ? await updateMusicTask(editingTask, {
+          title: formData.title,
+          artist: formData.artist,
+          audioUrl: formData.audioUrl,
+          duration: formData.duration,
+          reward: formData.reward,
         })
-      } else {
-        console.log("[v0] Creating music task")
-        const { error } = await supabaseRef.current.from("music_tasks").insert([payload])
-
-        if (error) {
-          console.error("[v0] Insert error:", error)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error.message,
-          })
-          return
-        }
-
-        toast({
-          title: "Music Task Added",
-          description: "New task has been added successfully",
+      : await createMusicTask({
+          title: formData.title,
+          artist: formData.artist,
+          audioUrl: formData.audioUrl,
+          duration: formData.duration,
+          reward: formData.reward,
         })
-      }
 
-      setShowForm(false)
-      setEditingTask(null)
-      setFormData({
-        title: "",
-        artist: "",
-        audioUrl: "",
-        duration: 180,
-        reward: 50,
-        imageUrl: "",
-      })
-    } catch (error: any) {
-      console.error("[v0] Submit error:", error)
+    if (result.error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to save task",
+        description: result.error,
       })
+      return
     }
+
+    toast({
+      title: editingTask ? "Music Task Updated" : "Music Task Added",
+      description: editingTask ? "Task has been updated successfully" : "New task has been added successfully",
+    })
+
+    setShowForm(false)
+    setEditingTask(null)
+    setFormData({
+      title: "",
+      artist: "",
+      audioUrl: "",
+      duration: 180,
+      reward: 50,
+      imageUrl: "",
+    })
   }
 
   const handleEdit = (task: any) => {
@@ -190,32 +165,21 @@ export default function AdminMusicPage() {
 
   const handleDelete = async (taskId: string) => {
     if (confirm("Are you sure you want to delete this music task?")) {
-      try {
-        console.log("[v0] Deleting music task:", taskId)
-        const { error } = await supabaseRef.current.from("music_tasks").delete().eq("id", taskId)
+      const result = await deleteMusicTask(taskId)
 
-        if (error) {
-          console.error("[v0] Delete error:", error)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error.message,
-          })
-          return
-        }
-
-        toast({
-          title: "Music Task Deleted",
-          description: "Task has been removed",
-        })
-      } catch (error: any) {
-        console.error("[v0] Delete catch error:", error)
+      if (result.error) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message || "Failed to delete task",
+          description: result.error,
         })
+        return
       }
+
+      toast({
+        title: "Music Task Deleted",
+        description: "Task has been removed",
+      })
     }
   }
 
@@ -230,33 +194,22 @@ export default function AdminMusicPage() {
     }
 
     if (confirm(`Are you sure you want to delete ${selectedIds.length} task(s)?`)) {
-      try {
-        console.log("[v0] Bulk deleting music tasks:", selectedIds)
-        const { error } = await supabaseRef.current.from("music_tasks").delete().in("id", selectedIds)
+      const result = await deleteMusicTasks(selectedIds)
 
-        if (error) {
-          console.error("[v0] Bulk delete error:", error)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error.message,
-          })
-          return
-        }
-
-        toast({
-          title: "Tasks Deleted",
-          description: `${selectedIds.length} task(s) have been removed`,
-        })
-        setSelectedIds([])
-      } catch (error: any) {
-        console.error("[v0] Bulk delete catch error:", error)
+      if (result.error) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message || "Failed to delete tasks",
+          description: result.error,
         })
+        return
       }
+
+      toast({
+        title: "Tasks Deleted",
+        description: `${selectedIds.length} task(s) have been removed`,
+      })
+      setSelectedIds([])
     }
   }
 
