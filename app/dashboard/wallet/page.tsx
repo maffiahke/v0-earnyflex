@@ -14,7 +14,7 @@ import { Wallet, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle, XCircle, Lo
 import { motion } from "framer-motion"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { getUserProfile } from "@/lib/supabase/queries"
-import { initiateStkPush } from "@/app/actions/mpesa-stk-push"
+import { initiateLipanaStkPush } from "@/app/actions/lipana-stk" // Fixed import path to use lipana-stk
 
 export default function WalletPage() {
   const router = useRouter()
@@ -86,11 +86,20 @@ export default function WalletPage() {
         return
       }
 
+      if (amount < 10) {
+        toast({
+          title: "Minimum amount is Ksh 10",
+          description: "Please enter at least Ksh 10",
+          variant: "destructive",
+        })
+        return
+      }
+
       setProcessing(true)
       try {
-        const result = await initiateStkPush(phoneNumber, amount, user.id)
+        const result = await initiateLipanaStkPush(phoneNumber, amount, user.id)
 
-        console.log("[v0] STK Push result:", result)
+        console.log("[v0] Lipana STK Push result:", result)
 
         if (result.success) {
           toast({
@@ -109,11 +118,6 @@ export default function WalletPage() {
             description: errorMessage,
             variant: "destructive",
           })
-
-          // Show alert with more details
-          alert(
-            `Payment Failed:\n\n${errorMessage}\n\nPlease ensure M-Pesa credentials are configured in Admin Settings.`,
-          )
         }
       } catch (error: any) {
         console.error("[v0] STK Push error:", error)
@@ -122,7 +126,6 @@ export default function WalletPage() {
           description: error.message || "An error occurred. Please try again.",
           variant: "destructive",
         })
-        alert(`Error: ${error.message || "An error occurred"}`)
       } finally {
         setProcessing(false)
       }

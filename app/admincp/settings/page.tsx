@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Settings, DollarSign, Gift, MessageSquare, Plus, Trash2 } from "lucide-react"
@@ -17,6 +16,7 @@ import {
   savePaymentMethods,
   saveSocialProofSettings,
   saveMpesaConfig,
+  saveLipanaConfig,
 } from "@/app/actions/admin-settings"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
@@ -40,6 +40,11 @@ export default function AdminSettingsPage() {
     passkey: "",
     environment: "sandbox" as "sandbox" | "production",
   })
+  const [lipanaConfig, setLipanaConfig] = useState({
+    publishableKey: "",
+    secretKey: "",
+    environment: "production" as "sandbox" | "production",
+  })
 
   const [loading, setLoading] = useState(false)
   const [newName, setNewName] = useState("")
@@ -48,6 +53,9 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     setAppSettings(liveSettings)
+    if (liveSettings && liveSettings.lipanaConfig) {
+      setLipanaConfig(liveSettings.lipanaConfig)
+    }
   }, [liveSettings])
 
   useEffect(() => {
@@ -239,6 +247,25 @@ export default function AdminSettingsPage() {
     }
   }
 
+  const handleSaveLipanaConfig = async () => {
+    setLoading(true)
+    try {
+      await saveLipanaConfig(lipanaConfig)
+      toast({
+        title: "Success",
+        description: "Lipana configuration saved successfully",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save Lipana configuration",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -368,89 +395,84 @@ export default function AdminSettingsPage() {
           </TabsContent>
 
           <TabsContent value="payment" className="space-y-6">
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5" />
-                  M-Pesa STK Push Configuration
+                  Lipana Payment Gateway
                 </CardTitle>
                 <CardDescription>
-                  Configure Safaricom Daraja API credentials for automatic M-Pesa payments
+                  Configure Lipana API credentials for automatic M-Pesa STK Push payments
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="mpesa-consumer-key">Consumer Key</Label>
+                  <Label htmlFor="lipana-publishable-key">Lipana Publishable Key</Label>
                   <Input
-                    id="mpesa-consumer-key"
+                    id="lipana-publishable-key"
                     type="text"
-                    placeholder="Your Daraja Consumer Key"
-                    value={mpesaConfig.consumerKey}
-                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, consumerKey: e.target.value })}
+                    placeholder="lip_pk_live_... or lip_pk_test_..."
+                    value={lipanaConfig.publishableKey}
+                    onChange={(e) => setLipanaConfig({ ...lipanaConfig, publishableKey: e.target.value })}
                   />
+                  <p className="text-xs text-muted-foreground">Safe to expose in client-side code (optional)</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mpesa-consumer-secret">Consumer Secret</Label>
+                  <Label htmlFor="lipana-secret-key">Lipana Secret Key</Label>
                   <Input
-                    id="mpesa-consumer-secret"
+                    id="lipana-secret-key"
                     type="password"
-                    placeholder="Your Daraja Consumer Secret"
-                    value={mpesaConfig.consumerSecret}
-                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, consumerSecret: e.target.value })}
+                    placeholder="lip_sk_live_... or lip_sk_test_..."
+                    value={lipanaConfig.secretKey}
+                    onChange={(e) => setLipanaConfig({ ...lipanaConfig, secretKey: e.target.value })}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Your Lipana secret API key (keep this private and secure)
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mpesa-shortcode">Business Shortcode</Label>
-                  <Input
-                    id="mpesa-shortcode"
-                    type="text"
-                    placeholder="174379 (sandbox) or your paybill"
-                    value={mpesaConfig.shortcode}
-                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, shortcode: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mpesa-passkey">Passkey</Label>
-                  <Textarea
-                    id="mpesa-passkey"
-                    placeholder="Your Lipa Na M-Pesa Online Passkey"
-                    value={mpesaConfig.passkey}
-                    onChange={(e) => setMpesaConfig({ ...mpesaConfig, passkey: e.target.value })}
-                    rows={3}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mpesa-environment">Environment</Label>
+                  <Label htmlFor="lipana-environment">Environment</Label>
                   <Select
-                    value={mpesaConfig.environment}
+                    value={lipanaConfig.environment}
                     onValueChange={(value: "sandbox" | "production") =>
-                      setMpesaConfig({ ...mpesaConfig, environment: value })
+                      setLipanaConfig({ ...lipanaConfig, environment: value })
                     }
                   >
-                    <SelectTrigger id="mpesa-environment">
+                    <SelectTrigger id="lipana-environment">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
-                      <SelectItem value="production">Production (Live)</SelectItem>
+                      <SelectItem value="sandbox">Sandbox (Testing - lip_sk_test_...)</SelectItem>
+                      <SelectItem value="production">Production (Live - lip_sk_live_...)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
-                  <p className="text-sm font-medium mb-2">Get your credentials from:</p>
-                  <a
-                    href="https://developer.safaricom.co.ke/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Safaricom Daraja Developer Portal →
-                  </a>
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg border space-y-2">
+                  <p className="text-sm font-medium mb-2">How to get Lipana API keys:</p>
+                  <ol className="text-sm space-y-1 list-decimal list-inside">
+                    <li>
+                      Sign up at{" "}
+                      <a
+                        href="https://lipana.dev"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        lipana.dev
+                      </a>
+                    </li>
+                    <li>Complete onboarding process</li>
+                    <li>Navigate to API Keys in your dashboard</li>
+                    <li>Create new API key pair</li>
+                    <li>Copy your secret key (lip_sk_live_...) and paste it above</li>
+                  </ol>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    For testing, use sandbox keys (lip_sk_test_...). No real money is processed in sandbox mode.
+                  </p>
                 </div>
-                <Button onClick={handleSaveMpesaConfig} disabled={loading} className="w-full">
+                <Button onClick={handleSaveLipanaConfig} disabled={loading} className="w-full">
                   <DollarSign className="w-4 h-4 mr-2" />
-                  {loading ? "Saving..." : "Save M-Pesa Configuration"}
+                  {loading ? "Saving..." : "Save Lipana Configuration"}
                 </Button>
               </CardContent>
             </Card>

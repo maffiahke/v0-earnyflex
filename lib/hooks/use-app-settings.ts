@@ -15,13 +15,6 @@ export interface AppSettings {
   maxWithdrawal: number
   minDeposit: number
   maxDeposit: number
-  mpesaConfig?: {
-    consumerKey: string
-    consumerSecret: string
-    shortcode: string
-    passkey: string
-    environment: "sandbox" | "production"
-  }
 }
 
 export interface PaymentMethods {
@@ -47,6 +40,12 @@ export interface MpesaConfig {
   consumerSecret: string
   shortcode: string
   passkey: string
+  environment: "sandbox" | "production"
+}
+
+export interface LipanaConfig {
+  publishableKey: string
+  secretKey: string
   environment: "sandbox" | "production"
 }
 
@@ -89,6 +88,12 @@ export function useAppSettings() {
     environment: "sandbox",
   })
 
+  const [lipanaConfig, setLipanaConfig] = useState<LipanaConfig>({
+    publishableKey: "",
+    secretKey: "",
+    environment: "production",
+  })
+
   const [loading, setLoading] = useState(true)
   const supabaseRef = useRef<any>(null)
   const subscriptionRef = useRef<RealtimeChannel | null>(null)
@@ -120,6 +125,8 @@ export function useAppSettings() {
             setSocialProofSettings(payload.new.value)
           } else if (payload.new.key === "mpesaConfig") {
             setMpesaConfig(payload.new.value)
+          } else if (payload.new.key === "lipanaConfig") {
+            setLipanaConfig(payload.new.value)
           }
         },
       )
@@ -155,6 +162,8 @@ export function useAppSettings() {
             setSocialProofSettings(setting.value)
           } else if (setting.key === "mpesaConfig") {
             setMpesaConfig(setting.value)
+          } else if (setting.key === "lipanaConfig") {
+            setLipanaConfig(setting.value)
           }
         })
       }
@@ -170,6 +179,7 @@ export function useAppSettings() {
     paymentMethods,
     socialProofSettings,
     mpesaConfig,
+    lipanaConfig, // Added lipanaConfig to return value
     loading,
   }
 }

@@ -129,3 +129,32 @@ export async function saveMpesaConfig(mpesaConfig: any) {
     return { success: false, error: err?.message || "Unknown error" }
   }
 }
+
+export async function saveLipanaConfig(lipanaConfig: any) {
+  try {
+    const supabase = await createAdminClient()
+
+    console.log("[v0] Saving Lipana config with service role key")
+
+    const { error } = await supabase.from("app_settings").upsert(
+      {
+        key: "lipanaConfig",
+        value: lipanaConfig,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    )
+
+    if (error) {
+      console.log("[v0] Lipana config error:", error)
+      return { success: false, error: error.message || JSON.stringify(error) }
+    }
+
+    revalidateTag("app-settings")
+    console.log("[v0] Lipana config saved successfully")
+    return { success: true }
+  } catch (err: any) {
+    console.log("[v0] Exception error:", err)
+    return { success: false, error: err?.message || "Unknown error" }
+  }
+}
