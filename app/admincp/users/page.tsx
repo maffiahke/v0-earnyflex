@@ -11,6 +11,13 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Search, Ban, CheckCircle, Wallet, UsersIcon, Calendar, Plus } from "lucide-react"
 import { motion } from "framer-motion"
+import {
+  updateUserBanStatus,
+  updateUserActivationStatus,
+  addUserBalance,
+  resetUserCheckin,
+  deleteUsers,
+} from "@/app/actions/admin-users"
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -134,12 +141,12 @@ export default function AdminUsersPage() {
   )
 
   const handleToggleBan = async (userId: string, isBanned: boolean) => {
-    const { error } = await supabaseRef.current.from("users").update({ is_banned: !isBanned }).eq("id", userId)
+    const result = await updateUserBanStatus(userId, isBanned)
 
-    if (error) {
+    if (!result.success) {
       toast({
         title: "Error",
-        description: error.message,
+        description: result.error,
         variant: "destructive",
       })
       return
@@ -151,12 +158,12 @@ export default function AdminUsersPage() {
   }
 
   const handleToggleActivation = async (userId: string, isActivated: boolean) => {
-    const { error } = await supabaseRef.current.from("users").update({ is_activated: !isActivated }).eq("id", userId)
+    const result = await updateUserActivationStatus(userId, isActivated)
 
-    if (error) {
+    if (!result.success) {
       toast({
         title: "Error",
-        description: error.message,
+        description: result.error,
         variant: "destructive",
       })
       return
@@ -178,19 +185,17 @@ export default function AdminUsersPage() {
 
     const user = users.find((u) => u.id === selectedUserId)
     if (user) {
-      const newBalance = (user.wallet_balance || 0) + Number(balanceAmount)
-      const { error } = await supabaseRef.current
-        .from("users")
-        .update({
-          wallet_balance: newBalance,
-          total_earnings: (user.total_earnings || 0) + Number(balanceAmount),
-        })
-        .eq("id", selectedUserId)
+      const result = await addUserBalance(
+        selectedUserId,
+        Number(balanceAmount),
+        user.wallet_balance || 0,
+        user.total_earnings || 0,
+      )
 
-      if (error) {
+      if (!result.success) {
         toast({
           title: "Error",
-          description: error.message,
+          description: result.error,
           variant: "destructive",
         })
         return
@@ -207,12 +212,12 @@ export default function AdminUsersPage() {
   }
 
   const handleResetCheckIn = async (userId: string) => {
-    const { error } = await supabaseRef.current.from("users").update({ last_checkin: null }).eq("id", userId)
+    const result = await resetUserCheckin(userId)
 
-    if (error) {
+    if (!result.success) {
       toast({
         title: "Error",
-        description: error.message,
+        description: result.error,
         variant: "destructive",
       })
       return
@@ -234,13 +239,13 @@ export default function AdminUsersPage() {
     }
 
     if (confirm(`Are you sure you want to delete ${selectedUserIds.length} user(s)? This cannot be undone.`)) {
-      const { error } = await supabaseRef.current.from("users").delete().in("id", selectedUserIds)
+      const result = await deleteUsers(selectedUserIds)
 
-      if (error) {
+      if (!result.success) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message,
+          description: result.error,
         })
         return
       }

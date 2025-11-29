@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -13,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Edit, Trash2, Package } from "lucide-react"
 import { motion } from "framer-motion"
+import { createPackage, updatePackage, deletePackages } from "@/app/actions/admin-packages"
 
 export default function AdminPackagesPage() {
   const router = useRouter()
@@ -141,49 +141,35 @@ export default function AdminPackagesPage() {
       price: Number(formData.price),
       benefits: benefitsArray,
       description: formData.description,
-      is_active: true,
     }
 
     try {
+      let result
       if (editingId) {
         console.log("[v0] Updating package:", editingId)
-        const { error } = await supabaseRef.current.from("activation_packages").update(payload).eq("id", editingId)
-
-        if (error) {
-          console.error("[v0] Update error:", error)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error.message,
-          })
-          return
-        }
-
-        console.log("[v0] Package updated successfully")
-        toast({
-          title: "Package Updated",
-          description: "Activation package has been updated successfully",
-        })
+        result = await updatePackage(editingId, payload)
       } else {
         console.log("[v0] Creating new package")
-        const { error } = await supabaseRef.current.from("activation_packages").insert([payload])
-
-        if (error) {
-          console.error("[v0] Insert error:", error)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error.message,
-          })
-          return
-        }
-
-        console.log("[v0] Package created successfully")
-        toast({
-          title: "Package Created",
-          description: "New activation package has been created",
-        })
+        result = await createPackage(payload)
       }
+
+      if (!result.success) {
+        console.error("[v0] Operation error:", result.error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.error,
+        })
+        return
+      }
+
+      console.log("[v0] Package saved successfully")
+      toast({
+        title: editingId ? "Package Updated" : "Package Created",
+        description: editingId
+          ? "Activation package has been updated successfully"
+          : "New activation package has been created",
+      })
 
       resetForm()
     } catch (error: any) {
@@ -211,14 +197,14 @@ export default function AdminPackagesPage() {
     if (confirm("Are you sure you want to delete this package?")) {
       try {
         console.log("[v0] Deleting package:", id)
-        const { error } = await supabaseRef.current.from("activation_packages").delete().eq("id", id)
+        const result = await deletePackages([id])
 
-        if (error) {
-          console.error("[v0] Delete error:", error)
+        if (!result.success) {
+          console.error("[v0] Delete error:", result.error)
           toast({
             variant: "destructive",
             title: "Error",
-            description: error.message,
+            description: result.error,
           })
           return
         }
@@ -252,14 +238,14 @@ export default function AdminPackagesPage() {
     if (confirm(`Are you sure you want to delete ${selectedIds.length} package(s)?`)) {
       try {
         console.log("[v0] Bulk deleting packages:", selectedIds)
-        const { error } = await supabaseRef.current.from("activation_packages").delete().in("id", selectedIds)
+        const result = await deletePackages(selectedIds)
 
-        if (error) {
-          console.error("[v0] Bulk delete error:", error)
+        if (!result.success) {
+          console.error("[v0] Bulk delete error:", result.error)
           toast({
             variant: "destructive",
             title: "Error",
-            description: error.message,
+            description: result.error,
           })
           return
         }
