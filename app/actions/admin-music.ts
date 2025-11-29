@@ -1,6 +1,15 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
+
+function getAdminClient() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
 
 export async function createMusicTask(data: {
   title: string
@@ -9,15 +18,7 @@ export async function createMusicTask(data: {
   duration: number
   reward: number
 }) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { data: result, error } = await supabase
     .from("music_tasks")
@@ -52,15 +53,7 @@ export async function updateMusicTask(
     reward: number
   },
 ) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { data: result, error } = await supabase
     .from("music_tasks")
@@ -84,15 +77,7 @@ export async function updateMusicTask(
 }
 
 export async function deleteMusicTask(id: string) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { error } = await supabase.from("music_tasks").delete().eq("id", id)
 
@@ -105,15 +90,7 @@ export async function deleteMusicTask(id: string) {
 }
 
 export async function deleteMusicTasks(ids: string[]) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { error } = await supabase.from("music_tasks").delete().in("id", ids)
 

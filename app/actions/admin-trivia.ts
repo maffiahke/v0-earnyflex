@@ -1,6 +1,15 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
+
+function getAdminClient() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
 
 export async function createTriviaQuestion(data: {
   question: string
@@ -8,15 +17,7 @@ export async function createTriviaQuestion(data: {
   correctAnswer: number
   reward: number
 }) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { data: result, error } = await supabase
     .from("trivia_questions")
@@ -49,15 +50,7 @@ export async function updateTriviaQuestion(
     reward: number
   },
 ) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { data: result, error } = await supabase
     .from("trivia_questions")
@@ -80,15 +73,7 @@ export async function updateTriviaQuestion(
 }
 
 export async function deleteTriviaQuestion(id: string) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { error } = await supabase.from("trivia_questions").delete().eq("id", id)
 
@@ -101,15 +86,7 @@ export async function deleteTriviaQuestion(id: string) {
 }
 
 export async function deleteTriviaQuestions(ids: string[]) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Unauthorized" }
-  }
+  const supabase = getAdminClient()
 
   const { error } = await supabase.from("trivia_questions").delete().in("id", ids)
 
