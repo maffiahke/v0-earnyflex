@@ -30,12 +30,22 @@ export async function GET() {
       })
     }
 
+    const authString = `${consumerKey}:${consumerSecret}`
+    const authBase64 = Buffer.from(authString).toString("base64")
+    const authHeader = `Basic ${authBase64}`
+
+    console.log("[v0] Consumer Key length:", consumerKey.length)
+    console.log("[v0] Consumer Secret length:", consumerSecret.length)
+    console.log(
+      "[v0] Auth string format check:",
+      authString.substring(0, 20) + "..." + authString.substring(authString.length - 5),
+    )
+    console.log("[v0] Base64 encoded:", authBase64.substring(0, 30) + "...")
+
     const environments = [
       { name: "sandbox", url: "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" },
       { name: "production", url: "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" },
     ]
-
-    const authHeader = "Basic " + Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64")
 
     const testResults = []
 
@@ -60,6 +70,8 @@ export async function GET() {
           authData = { raw: authResponseText }
         }
 
+        console.log(`[v0] ${env.name} response:`, JSON.stringify(authData, null, 2))
+
         testResults.push({
           environment: env.name,
           url: env.url,
@@ -70,6 +82,7 @@ export async function GET() {
           hasAccessToken: !!(authData as any).access_token,
         })
       } catch (error: any) {
+        console.error(`[v0] ${env.name} error:`, error.message)
         testResults.push({
           environment: env.name,
           url: env.url,
@@ -92,6 +105,7 @@ export async function GET() {
         shortcode,
         passkeyLength: passkey.length,
         configuredEnvironment: environment,
+        authBase64Preview: authBase64.substring(0, 30) + "...",
       },
     })
   } catch (error: any) {
