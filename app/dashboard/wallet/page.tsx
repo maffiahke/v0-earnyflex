@@ -23,13 +23,15 @@ export default function WalletPage() {
   const [user, setUser] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [depositAmount, setDepositAmount] = useState("")
+  const [depositAmount, setDepositAmount] = useState<number>(500)
   const [depositMethod, setDepositMethod] = useState<"mpesa_stk" | "mpesa_paybill" | "bank">("mpesa_stk")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawMethod, setWithdrawMethod] = useState<"mpesa" | "bank">("mpesa")
   const [processing, setProcessing] = useState(false)
   const [showPaybillInstructions, setShowPaybillInstructions] = useState(false)
+
+  const PACKAGE_AMOUNTS = [500, 1000, 2500]
 
   useEffect(() => {
     loadUser()
@@ -66,11 +68,11 @@ export default function WalletPage() {
   }
 
   async function handleDeposit() {
-    const amount = Number.parseFloat(depositAmount)
+    const amount = depositAmount
     if (!amount || amount <= 0) {
       toast({
         title: "Invalid amount",
-        description: "Please enter a valid amount",
+        description: "Please select a valid amount",
         variant: "destructive",
       })
       return
@@ -106,7 +108,7 @@ export default function WalletPage() {
             title: "STK Push Sent",
             description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
           })
-          setDepositAmount("")
+          setDepositAmount(500)
           setPhoneNumber("")
           setTimeout(() => loadUser(), 2000)
         } else {
@@ -160,7 +162,7 @@ export default function WalletPage() {
         description: "Your deposit will be processed by admin",
       })
 
-      setDepositAmount("")
+      setDepositAmount(500)
       loadUser()
     } catch (error) {
       console.error("Error:", error)
@@ -332,7 +334,7 @@ export default function WalletPage() {
                     <Input
                       id="phone-number"
                       type="tel"
-                      placeholder="0712345678"
+                      placeholder="+254712345678 or 0712345678"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className="bg-background/50"
@@ -344,15 +346,21 @@ export default function WalletPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="deposit-amount">Amount (KSh)</Label>
-                  <Input
-                    id="deposit-amount"
-                    type="number"
-                    placeholder="Enter amount"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="bg-background/50"
-                  />
+                  <Label>Select Amount (KSh)</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {PACKAGE_AMOUNTS.map((amount) => (
+                      <Button
+                        key={amount}
+                        type="button"
+                        variant={depositAmount === amount ? "default" : "outline"}
+                        onClick={() => setDepositAmount(amount)}
+                        className={depositAmount === amount ? "bg-primary" : ""}
+                      >
+                        KSh {amount.toLocaleString()}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Select a package amount to deposit</p>
                 </div>
 
                 {depositMethod === "mpesa_stk" && (
@@ -451,7 +459,7 @@ export default function WalletPage() {
                       <Button
                         onClick={() => {
                           setShowPaybillInstructions(false)
-                          setDepositAmount("")
+                          setDepositAmount(500)
                         }}
                         className="w-full"
                       >
