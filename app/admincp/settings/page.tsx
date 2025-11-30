@@ -28,7 +28,8 @@ export default function AdminSettingsPage() {
     appSettings: liveSettings,
     paymentMethods: livePaymentMethods,
     socialProofSettings: liveSocialProofSettings,
-    mpesaConfig: liveMpesaConfig, // Get M-Pesa config from hook
+    mpesaConfig: liveMpesaConfig,
+    paymentMethodsEnabled: livePaymentMethodsEnabled, // Get paymentMethodsEnabled from hook
   } = useAppSettings()
 
   const [appSettings, setAppSettings] = useState(liveSettings)
@@ -62,9 +63,6 @@ export default function AdminSettingsPage() {
     if (liveSettings && liveSettings.lipanaConfig) {
       setLipanaConfig(liveSettings.lipanaConfig)
     }
-    if (liveSettings && liveSettings.paymentMethodsEnabled) {
-      setPaymentMethodsEnabled(liveSettings.paymentMethodsEnabled)
-    }
   }, [liveSettings])
 
   useEffect(() => {
@@ -80,6 +78,12 @@ export default function AdminSettingsPage() {
       setMpesaConfig(liveMpesaConfig)
     }
   }, [liveMpesaConfig])
+
+  useEffect(() => {
+    if (livePaymentMethodsEnabled) {
+      setPaymentMethodsEnabled(livePaymentMethodsEnabled)
+    }
+  }, [livePaymentMethodsEnabled])
 
   const handleSaveAppSettings = async () => {
     setLoading(true)

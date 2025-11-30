@@ -49,6 +49,12 @@ export interface LipanaConfig {
   environment: "sandbox" | "production"
 }
 
+export interface PaymentMethodsEnabled {
+  lipana: boolean
+  mpesa: boolean
+  bank: boolean
+}
+
 export function useAppSettings() {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     appName: "Earnify",
@@ -94,6 +100,12 @@ export function useAppSettings() {
     environment: "production",
   })
 
+  const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState<PaymentMethodsEnabled>({
+    lipana: true,
+    mpesa: true,
+    bank: true,
+  })
+
   const [loading, setLoading] = useState(true)
   const supabaseRef = useRef<any>(null)
   const subscriptionRef = useRef<RealtimeChannel | null>(null)
@@ -127,6 +139,8 @@ export function useAppSettings() {
             setMpesaConfig(payload.new.value)
           } else if (payload.new.key === "lipanaConfig") {
             setLipanaConfig(payload.new.value)
+          } else if (payload.new.key === "paymentMethodsEnabled") {
+            setPaymentMethodsEnabled(payload.new.value)
           }
         },
       )
@@ -164,6 +178,8 @@ export function useAppSettings() {
             setMpesaConfig(setting.value)
           } else if (setting.key === "lipanaConfig") {
             setLipanaConfig(setting.value)
+          } else if (setting.key === "paymentMethodsEnabled") {
+            setPaymentMethodsEnabled(setting.value)
           }
         })
       }
@@ -179,7 +195,8 @@ export function useAppSettings() {
     paymentMethods,
     socialProofSettings,
     mpesaConfig,
-    lipanaConfig, // Added lipanaConfig to return value
+    lipanaConfig,
+    paymentMethodsEnabled, // Added paymentMethodsEnabled to return value
     loading,
   }
 }
