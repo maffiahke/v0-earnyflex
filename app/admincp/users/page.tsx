@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Search, Ban, CheckCircle, Wallet, UsersIcon, Calendar, Plus } from "lucide-react"
+import { Search, Ban, CheckCircle, Wallet, UsersIcon, Calendar, Plus, Minus } from "lucide-react"
 import { motion } from "framer-motion"
 import {
   updateUserBanStatus,
   updateUserActivationStatus,
-  addUserBalance,
+  adjustUserBalance,
   resetUserCheckin,
   deleteUsers,
 } from "@/app/actions/admin-users"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -28,9 +29,10 @@ export default function AdminUsersPage() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [users, setUsers] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [showAddBalance, setShowAddBalance] = useState(false)
+  const [showAdjustBalance, setShowAdjustBalance] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState("")
   const [balanceAmount, setBalanceAmount] = useState("")
+  const [operationType, setOperationType] = useState<"add" | "subtract">("add")
   const [loading, setLoading] = useState(true)
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
 
@@ -174,10 +176,11 @@ export default function AdminUsersPage() {
     })
   }
 
-  const handleAddBalance = async () => {
+  const handleAdjustBalance = async () => {
     if (!balanceAmount || isNaN(Number(balanceAmount))) {
       toast({
         title: "Invalid Amount",
+        description: "Please enter a valid amount.",
         variant: "destructive",
       })
       return
@@ -185,12 +188,9 @@ export default function AdminUsersPage() {
 
     const user = users.find((u) => u.id === selectedUserId)
     if (user) {
-      const result = await addUserBalance(
-        selectedUserId,
-        Number(balanceAmount),
-        user.wallet_balance || 0,
-        user.total_earnings || 0,
-      )
+      const amount = operationType === "add" ? Number(balanceAmount) : -Number(balanceAmount)
+
+      const result = await adjustUserBalance(selectedUserId, amount, user.wallet_balance || 0, user.total_earnings || 0)
 
       if (!result.success) {
         toast({
@@ -202,12 +202,13 @@ export default function AdminUsersPage() {
       }
 
       toast({
-        title: "Balance Added",
-        description: `Added KSh ${balanceAmount} to ${user.name}'s wallet`,
+        title: "Balance Adjusted",
+        description: `${operationType === "add" ? "Added" : "Subtracted"} KSh ${balanceAmount} ${operationType === "add" ? "to" : "from"} ${user.name}'s wallet`,
       })
-      setShowAddBalance(false)
+      setShowAdjustBalance(false)
       setBalanceAmount("")
       setSelectedUserId("")
+      setOperationType("add")
     }
   }
 
@@ -367,11 +368,11 @@ export default function AdminUsersPage() {
                         variant="outline"
                         onClick={() => {
                           setSelectedUserId(user.id)
-                          setShowAddBalance(true)
+                          setShowAdjustBalance(true)
                         }}
                       >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Add Balance
+                        <Wallet className="w-3 h-3 mr-1" />
+                        Adjust Balance
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => handleResetCheckIn(user.id)}>
                         Reset Check-in
@@ -384,17 +385,39 @@ export default function AdminUsersPage() {
           )}
         </Card>
 
-        {showAddBalance && (
+        {showAdjustBalance && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="glass-card p-6 max-w-md w-full"
             >
-              <h2 className="text-xl font-bold mb-4">Add Balance</h2>
+              <h2 className="text-xl font-bold mb-4">Adjust User Balance</h2>
               <div className="space-y-4">
                 <div>
-                  <Label>Amount to Add (KSh)</Label>
+                  <Label>Operation</Label>
+                  <Select value={operationType} onValueChange={(value: "add" | "subtract") => setOperationType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="add">
+                        <div className="flex items-center gap-2">
+                          <Plus className="w-4 h-4 text-success" />
+                          <span>Add Balance</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="subtract">
+                        <div className="flex items-center gap-2">
+                          <Minus className="w-4 h-4 text-destructive" />
+                          <span>Subtract Balance</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Amount (KSh)</Label>
                   <Input
                     type="number"
                     value={balanceAmount}
@@ -404,16 +427,26 @@ export default function AdminUsersPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleAddBalance} className="flex-1">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Balance
+                  <Button onClick={handleAdjustBalance} className="flex-1">
+                    {operationType === "add" ? (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Balance
+                      </>
+                    ) : (
+                      <>
+                        <Minus className="w-4 h-4 mr-2" />
+                        Subtract Balance
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setShowAddBalance(false)
+                      setShowAdjustBalance(false)
                       setBalanceAmount("")
                       setSelectedUserId("")
+                      setOperationType("add")
                     }}
                   >
                     Cancel

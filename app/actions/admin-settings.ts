@@ -158,3 +158,33 @@ export async function saveLipanaConfig(lipanaConfig: any) {
     return { success: false, error: err?.message || "Unknown error" }
   }
 }
+
+// Added function to save payment methods enabled state
+export async function savePaymentMethodsEnabled(paymentMethodsEnabled: any) {
+  try {
+    const supabase = await createAdminClient()
+
+    console.log("[v0] Saving payment methods enabled state with service role key")
+
+    const { error } = await supabase.from("app_settings").upsert(
+      {
+        key: "paymentMethodsEnabled",
+        value: paymentMethodsEnabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    )
+
+    if (error) {
+      console.log("[v0] Payment methods enabled error:", error)
+      return { success: false, error: error.message || JSON.stringify(error) }
+    }
+
+    revalidateTag("app-settings")
+    console.log("[v0] Payment methods enabled state saved successfully")
+    return { success: true }
+  } catch (err: any) {
+    console.log("[v0] Exception error:", err)
+    return { success: false, error: err?.message || "Unknown error" }
+  }
+}

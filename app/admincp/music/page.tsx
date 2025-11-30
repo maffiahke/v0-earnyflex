@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Music, Plus, Pencil, Trash2, Clock } from "lucide-react"
+import { Music, Plus, Pencil, Trash2, Clock, Upload } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createMusicTask, updateMusicTask, deleteMusicTask, deleteMusicTasks } from "@/app/actions/admin-music"
 
@@ -19,6 +19,8 @@ export default function AdminMusicPage() {
   const { toast } = useToast()
   const authCheckRef = useRef(false)
   const supabaseRef = useRef<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -62,7 +64,6 @@ export default function AdminMusicPage() {
 
   const setupRealtimeSubscription = async () => {
     try {
-      // Initial load
       const { data, error } = await supabaseRef.current
         .from("music_tasks")
         .select("*")
@@ -73,7 +74,6 @@ export default function AdminMusicPage() {
         setLoading(false)
       }
 
-      // Subscribe to real-time changes
       const subscription = supabaseRef.current
         .channel("music-changes")
         .on(
@@ -104,6 +104,54 @@ export default function AdminMusicPage() {
   }
 
   if (loading || !isAdmin) return null
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("audio/")) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File",
+        description: "Please select an audio file (MP3, WAV, etc.)",
+      })
+      return
+    }
+
+    setUploading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload-audio", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+
+      const result = await response.json()
+
+      setFormData((prev) => ({ ...prev, audioUrl: result.url }))
+
+      toast({
+        title: "Upload Successful",
+        description: `${file.name} uploaded successfully`,
+      })
+    } catch (error) {
+      console.error("Upload error:", error)
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload audio file. Please try again.",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -260,14 +308,41 @@ export default function AdminMusicPage() {
                         required
                       />
                     </div>
-                    <div>
-                      <Label>Audio URL</Label>
-                      <Input
-                        value={formData.audioUrl}
-                        onChange={(e) => setFormData({ ...formData, audioUrl: e.target.value })}
-                        placeholder="/audio/song.mp3"
-                        required
-                      />
+                    <div className="md:col-span-2">
+                      <Label>Audio File</Label>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="audio/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="flex-1"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {uploading ? "Uploading..." : "Upload Audio File"}
+                          </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground text-center">or</div>
+                        <Input
+                          value={formData.audioUrl}
+                          onChange={(e) => setFormData({ ...formData, audioUrl: e.target.value })}
+                          placeholder="Enter audio URL manually"
+                          required
+                        />
+                        {formData.audioUrl && (
+                          <p className="text-xs text-success">
+                            ✓ Audio URL set: {formData.audioUrl.substring(0, 50)}...
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <Label>Image URL (Optional)</Label>
@@ -299,7 +374,9 @@ export default function AdminMusicPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit">{editingTask ? "Update Task" : "Add Task"}</Button>
+                    <Button type="submit" disabled={uploading}>
+                      {editingTask ? "Update Task" : "Add Task"}
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"

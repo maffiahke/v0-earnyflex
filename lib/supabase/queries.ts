@@ -188,7 +188,6 @@ export async function completeTask(userId: string, reward: number, taskType: "mu
 
   if (error) throw error
 
-  // Record task completion in user_task_completions
   if (taskId) {
     await supabase.from("user_task_completions").insert({
       user_id: userId,

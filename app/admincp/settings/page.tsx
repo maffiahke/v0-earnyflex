@@ -17,6 +17,7 @@ import {
   saveSocialProofSettings,
   saveMpesaConfig,
   saveLipanaConfig,
+  savePaymentMethodsEnabled,
 } from "@/app/actions/admin-settings"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
@@ -45,6 +46,11 @@ export default function AdminSettingsPage() {
     secretKey: "",
     environment: "production" as "sandbox" | "production",
   })
+  const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState({
+    lipana: true,
+    mpesa: true,
+    bank: true,
+  })
 
   const [loading, setLoading] = useState(false)
   const [newName, setNewName] = useState("")
@@ -55,6 +61,9 @@ export default function AdminSettingsPage() {
     setAppSettings(liveSettings)
     if (liveSettings && liveSettings.lipanaConfig) {
       setLipanaConfig(liveSettings.lipanaConfig)
+    }
+    if (liveSettings && liveSettings.paymentMethodsEnabled) {
+      setPaymentMethodsEnabled(liveSettings.paymentMethodsEnabled)
     }
   }, [liveSettings])
 
@@ -266,6 +275,25 @@ export default function AdminSettingsPage() {
     }
   }
 
+  const handleSavePaymentMethodsEnabled = async () => {
+    setLoading(true)
+    try {
+      await savePaymentMethodsEnabled(paymentMethodsEnabled)
+      toast({
+        title: "Success",
+        description: "Payment methods settings saved successfully",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save payment methods settings",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -274,23 +302,14 @@ export default function AdminSettingsPage() {
           <p className="text-muted-foreground">Configure app-wide settings and payment methods</p>
         </div>
 
-        <Tabs defaultValue="app">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
-            <TabsTrigger value="app">
-              <Settings className="w-4 h-4 mr-2" />
-              App Settings
-            </TabsTrigger>
-            <TabsTrigger value="payment">
-              <DollarSign className="w-4 h-4 mr-2" />
-              Payment Methods
-            </TabsTrigger>
-            <TabsTrigger value="social">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Social Proof
-            </TabsTrigger>
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="glass">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="payments">Payment Methods</TabsTrigger>
+            <TabsTrigger value="social-proof">Social Proof</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="app">
+          <TabsContent value="general">
             <Card className="glass-card p-6">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Settings className="w-5 h-5" />
@@ -394,8 +413,89 @@ export default function AdminSettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="payment" className="space-y-6">
-            <Card>
+          <TabsContent value="payments" className="space-y-6">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Payment Methods Control
+                </CardTitle>
+                <CardDescription>Enable or disable payment methods for deposits</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 glass rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Lipana STK Push</h4>
+                      <p className="text-sm text-muted-foreground">Automatic M-Pesa payment via Lipana</p>
+                    </div>
+                    <Select
+                      value={paymentMethodsEnabled.lipana ? "enabled" : "disabled"}
+                      onValueChange={(value) =>
+                        setPaymentMethodsEnabled({ ...paymentMethodsEnabled, lipana: value === "enabled" })
+                      }
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="enabled">Enabled</SelectItem>
+                        <SelectItem value="disabled">Disabled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 glass rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Manual M-Pesa Paybill</h4>
+                      <p className="text-sm text-muted-foreground">Manual payment via M-Pesa paybill</p>
+                    </div>
+                    <Select
+                      value={paymentMethodsEnabled.mpesa ? "enabled" : "disabled"}
+                      onValueChange={(value) =>
+                        setPaymentMethodsEnabled({ ...paymentMethodsEnabled, mpesa: value === "enabled" })
+                      }
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="enabled">Enabled</SelectItem>
+                        <SelectItem value="disabled">Disabled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 glass rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Bank Transfer</h4>
+                      <p className="text-sm text-muted-foreground">Manual payment via bank transfer</p>
+                    </div>
+                    <Select
+                      value={paymentMethodsEnabled.bank ? "enabled" : "disabled"}
+                      onValueChange={(value) =>
+                        setPaymentMethodsEnabled({ ...paymentMethodsEnabled, bank: value === "enabled" })
+                      }
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="enabled">Enabled</SelectItem>
+                        <SelectItem value="disabled">Disabled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button onClick={handleSavePaymentMethodsEnabled} disabled={loading} className="w-full">
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  {loading ? "Saving..." : "Save Payment Methods Settings"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5" />
@@ -563,7 +663,7 @@ export default function AdminSettingsPage() {
             </Button>
           </TabsContent>
 
-          <TabsContent value="social">
+          <TabsContent value="social-proof">
             <div className="space-y-4">
               <Card className="glass-card p-6">
                 <h2 className="text-xl font-semibold mb-4">Fake Names for Social Proof</h2>

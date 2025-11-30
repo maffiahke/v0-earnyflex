@@ -55,11 +55,13 @@ export default function MusicTasksPage() {
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
 
-      const musicTasks = await getMusicTasks()
-      setTasks(musicTasks)
-
       const canDo = await canDoTask(authUser.id, "music")
       setCanDoToday(canDo)
+
+      if (canDo) {
+        const musicTasks = await getMusicTasks()
+        setTasks(musicTasks)
+      }
 
       initAudio()
     } catch (error) {
@@ -143,7 +145,7 @@ export default function MusicTasksPage() {
       if (!authUser) return
 
       await Promise.all([
-        completeTask(authUser.id, task.reward, "music"),
+        completeTask(authUser.id, task.reward, "music", task.id),
         supabase.from("transactions").insert({
           user_id: authUser.id,
           type: "earning",
@@ -205,6 +207,19 @@ export default function MusicTasksPage() {
           <p className="text-muted-foreground">Listen to music and earn money (once per day)</p>
         </div>
 
+        {!canDoToday && !currentTask && (
+          <Card className="glass-card p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Come Back Tomorrow!</h2>
+            <p className="text-muted-foreground mb-4">You've completed your music task for today.</p>
+            <p className="text-sm text-muted-foreground">
+              Music tasks refresh daily. Check back tomorrow for more earning opportunities!
+            </p>
+          </Card>
+        )}
+
         {currentTask ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
             <Card className="glass-card p-8">
@@ -241,7 +256,7 @@ export default function MusicTasksPage() {
               </div>
             </Card>
           </motion.div>
-        ) : (
+        ) : canDoToday ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {tasks.map((task) => (
               <motion.div
@@ -268,7 +283,7 @@ export default function MusicTasksPage() {
               </motion.div>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Success Modal */}
         <AnimatePresence>

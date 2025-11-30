@@ -32,7 +32,12 @@ export async function updateUserActivationStatus(userId: string, isActivated: bo
   return { success: true }
 }
 
-export async function addUserBalance(userId: string, amount: number, currentBalance: number, currentEarnings: number) {
+export async function adjustUserBalance(
+  userId: string,
+  amount: number,
+  currentBalance: number,
+  currentEarnings: number,
+) {
   const supabase = getAdminClient()
 
   const { error } = await supabase
