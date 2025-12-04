@@ -74,7 +74,7 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-xl md:text-2xl text-foreground/80 mb-12 leading-relaxed text-balance">
-          Earn Kenyan Shillings by listening to music, answering trivia, and referring friends
+          Earn Income by listening to music, answering trivia, and referring friends
         </p>
 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
@@ -130,7 +130,7 @@ export default function LandingPage() {
         </div>
 
         <p className="text-sm text-muted-foreground mt-8 max-w-2xl mx-auto leading-relaxed text-pretty">
-          Join thousands of Kenyans earning money daily across the country by completing simple tasks whenever you want
+          Join thousands of Investors earning money daily across the country by completing simple tasks whenever you want
         </p>
       </motion.div>
     </div>
