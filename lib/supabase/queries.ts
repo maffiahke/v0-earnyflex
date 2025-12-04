@@ -64,6 +64,8 @@ export async function getAvailableTriviaQuestions(userId: string) {
   const supabase = createBrowserClient()
   const today = new Date().toISOString().split("T")[0]
 
+  const { data: user } = await supabase.from("users").select("active_package_id").eq("id", userId).single()
+
   // Get today's completed trivia questions
   const { data: completions } = await supabase
     .from("user_task_completions")
@@ -75,12 +77,12 @@ export async function getAvailableTriviaQuestions(userId: string) {
 
   const completedIds = completions?.map((c) => c.task_id) || []
 
-  // Get all active trivia questions not completed today
   const { data, error } = await supabase
     .from("trivia_questions")
     .select("*")
     .eq("is_active", true)
     .not("id", "in", `(${completedIds.length > 0 ? completedIds.join(",") : "00000000-0000-0000-0000-000000000000"})`)
+    .or(`package_id.is.null,package_id.eq.${user?.active_package_id || "null"}`)
     .order("created_at", { ascending: false })
 
   if (error) throw error

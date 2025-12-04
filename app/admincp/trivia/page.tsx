@@ -36,13 +36,22 @@ export default function AdminTriviaPage() {
     options: ["", "", "", ""],
     correctAnswer: 0,
     reward: 30,
+    packageId: "", // Add package assignment field
   })
+
+  const [packages, setPackages] = useState<any[]>([])
 
   useEffect(() => {
     if (authCheckRef.current) return
     authCheckRef.current = true
     checkAuth()
   }, [])
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadPackages()
+    }
+  }, [isAdmin])
 
   const checkAuth = async () => {
     try {
@@ -108,6 +117,22 @@ export default function AdminTriviaPage() {
     }
   }
 
+  const loadPackages = async () => {
+    try {
+      const { data, error } = await supabaseRef.current
+        .from("activation_packages")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("price", { ascending: true })
+
+      if (!error && data) {
+        setPackages(data)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading packages:", error)
+    }
+  }
+
   if (loading || !isAdmin) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,12 +153,14 @@ export default function AdminTriviaPage() {
           options: formData.options,
           correctAnswer: formData.correctAnswer,
           reward: formData.reward,
+          packageId: formData.packageId || null, // Include package assignment
         })
       : await createTriviaQuestion({
           question: formData.question,
           options: formData.options,
           correctAnswer: formData.correctAnswer,
           reward: formData.reward,
+          packageId: formData.packageId || null, // Include package assignment
         })
 
     if (result.error) {
@@ -159,6 +186,7 @@ export default function AdminTriviaPage() {
       options: ["", "", "", ""],
       correctAnswer: 0,
       reward: 30,
+      packageId: "", // Reset package assignment
     })
   }
 
@@ -169,6 +197,7 @@ export default function AdminTriviaPage() {
       options: question.options,
       correctAnswer: question.correct_answer || question.correctAnswer,
       reward: question.reward,
+      packageId: question.package_id || "", // Include package in edit
     })
     setShowForm(true)
   }
@@ -303,6 +332,25 @@ export default function AdminTriviaPage() {
                     />
                   </div>
 
+                  <div>
+                    <Label>Assigned Package (Optional)</Label>
+                    <select
+                      value={formData.packageId}
+                      onChange={(e) => setFormData({ ...formData, packageId: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">All Users (No Package Required)</option>
+                      {packages.map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      If selected, only users with this package can see this question
+                    </p>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button type="submit">{editingQuestion ? "Update Question" : "Add Question"}</Button>
                     <Button
@@ -316,6 +364,7 @@ export default function AdminTriviaPage() {
                           options: ["", "", "", ""],
                           correctAnswer: 0,
                           reward: 30,
+                          packageId: "", // Reset package assignment
                         })
                       }}
                     >

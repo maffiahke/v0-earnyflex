@@ -17,6 +17,7 @@ export async function createMusicTask(data: {
   audioUrl: string
   duration: number
   reward: number
+  packageId?: string | null // Add optional packageId parameter
 }) {
   const supabase = getAdminClient()
 
@@ -29,6 +30,7 @@ export async function createMusicTask(data: {
         audio_url: data.audioUrl,
         duration: data.duration,
         reward: data.reward,
+        package_id: data.packageId || null, // Include package_id field
         is_active: true,
       },
     ])
@@ -51,6 +53,7 @@ export async function updateMusicTask(
     audioUrl: string
     duration: number
     reward: number
+    packageId?: string | null // Add optional packageId parameter
   },
 ) {
   const supabase = getAdminClient()
@@ -63,6 +66,7 @@ export async function updateMusicTask(
       audio_url: data.audioUrl,
       duration: data.duration,
       reward: data.reward,
+      package_id: data.packageId || null, // Include package_id field
     })
     .eq("id", id)
     .select()

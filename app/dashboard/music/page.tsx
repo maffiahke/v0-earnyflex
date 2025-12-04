@@ -8,12 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import { playSound, initAudio } from "@/lib/sounds"
-import { Play, Pause, Sparkles } from "lucide-react"
+import { Play, Pause, Sparkles, Music } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
-import Image from "next/image"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { getMusicTasks, canDoTask, completeTask, getUserProfile } from "@/lib/supabase/queries"
+import { canDoTask, completeTask, getUserProfile } from "@/lib/supabase/queries"
 
 export default function MusicTasksPage() {
   const router = useRouter()
@@ -64,8 +63,14 @@ export default function MusicTasksPage() {
       setCanDoToday(canDo)
 
       if (canDo) {
-        const musicTasks = await getMusicTasks()
-        setTasks(musicTasks)
+        const { data: tasks, error } = await supabase
+          .from("music_tasks")
+          .select("*")
+          .eq("is_active", true)
+          .or(`package_id.is.null,package_id.eq.${profile.active_package_id || "null"}`)
+
+        if (error) throw error
+        setTasks(tasks || [])
       } else {
         setTasks([])
       }
@@ -261,8 +266,8 @@ export default function MusicTasksPage() {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
             <Card className="glass-card p-8">
               <div className="flex flex-col items-center text-center space-y-6">
-                <div className="relative w-48 h-48 rounded-2xl overflow-hidden">
-                  <Image src="/abstract-music-album.png" alt={currentTask.title} fill className="object-cover" />
+                <div className="relative w-48 h-48 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <Music className="w-24 h-24 text-primary" />
                 </div>
 
                 <div>
@@ -304,8 +309,8 @@ export default function MusicTasksPage() {
               >
                 <Card className="glass-card p-6 cursor-pointer" onClick={() => startTask(task)}>
                   <div className="flex gap-4">
-                    <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                      <Image src="/diverse-group-making-music.png" alt={task.title} fill className="object-cover" />
+                    <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                      <Music className="w-10 h-10 text-primary" />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg mb-1">{task.title}</h3>

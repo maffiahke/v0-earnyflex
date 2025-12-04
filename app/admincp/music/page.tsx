@@ -35,13 +35,22 @@ export default function AdminMusicPage() {
     duration: 180,
     reward: 50,
     imageUrl: "",
+    packageId: "", // Add package assignment field
   })
+
+  const [packages, setPackages] = useState<any[]>([])
 
   useEffect(() => {
     if (authCheckRef.current) return
     authCheckRef.current = true
     checkAuth()
   }, [])
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadPackages()
+    }
+  }, [isAdmin])
 
   const checkAuth = async () => {
     try {
@@ -100,6 +109,22 @@ export default function AdminMusicPage() {
       }
     } catch (error) {
       console.error("[v0] Subscription error:", error)
+    }
+  }
+
+  const loadPackages = async () => {
+    try {
+      const { data, error } = await supabaseRef.current
+        .from("activation_packages")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("price", { ascending: true })
+
+      if (!error && data) {
+        setPackages(data)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading packages:", error)
     }
   }
 
@@ -163,6 +188,7 @@ export default function AdminMusicPage() {
           audioUrl: formData.audioUrl,
           duration: formData.duration,
           reward: formData.reward,
+          packageId: formData.packageId || null, // Include package assignment
         })
       : await createMusicTask({
           title: formData.title,
@@ -170,6 +196,7 @@ export default function AdminMusicPage() {
           audioUrl: formData.audioUrl,
           duration: formData.duration,
           reward: formData.reward,
+          packageId: formData.packageId || null, // Include package assignment
         })
 
     if (result.error) {
@@ -195,6 +222,7 @@ export default function AdminMusicPage() {
       duration: 180,
       reward: 50,
       imageUrl: "",
+      packageId: "", // Reset package assignment field
     })
   }
 
@@ -207,6 +235,7 @@ export default function AdminMusicPage() {
       duration: task.duration,
       reward: task.reward,
       imageUrl: task.image_url || task.imageUrl || "",
+      packageId: task.package_id || "", // Include package in edit
     })
     setShowForm(true)
   }
@@ -372,6 +401,24 @@ export default function AdminMusicPage() {
                         required
                       />
                     </div>
+                    <div>
+                      <Label>Assigned Package (Optional)</Label>
+                      <select
+                        value={formData.packageId}
+                        onChange={(e) => setFormData({ ...formData, packageId: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">All Users (No Package Required)</option>
+                        {packages.map((pkg) => (
+                          <option key={pkg.id} value={pkg.id}>
+                            {pkg.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        If selected, only users with this package can see this task
+                      </p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button type="submit" disabled={uploading}>
@@ -390,6 +437,7 @@ export default function AdminMusicPage() {
                           duration: 180,
                           reward: 50,
                           imageUrl: "",
+                          packageId: "", // Reset package assignment field
                         })
                       }}
                     >

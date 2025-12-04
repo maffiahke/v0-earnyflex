@@ -16,6 +16,7 @@ export async function createTriviaQuestion(data: {
   options: string[]
   correctAnswer: number
   reward: number
+  packageId?: string | null // Add optional packageId parameter
 }) {
   const supabase = getAdminClient()
 
@@ -27,6 +28,7 @@ export async function createTriviaQuestion(data: {
         options: data.options,
         correct_answer: data.correctAnswer,
         reward: data.reward,
+        package_id: data.packageId || null, // Include package_id field
         is_active: true,
       },
     ])
@@ -48,6 +50,7 @@ export async function updateTriviaQuestion(
     options: string[]
     correctAnswer: number
     reward: number
+    packageId?: string | null // Add optional packageId parameter
   },
 ) {
   const supabase = getAdminClient()
@@ -59,6 +62,7 @@ export async function updateTriviaQuestion(
       options: data.options,
       correct_answer: data.correctAnswer,
       reward: data.reward,
+      package_id: data.packageId || null, // Include package_id field
     })
     .eq("id", id)
     .select()

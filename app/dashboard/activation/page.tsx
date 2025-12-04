@@ -78,6 +78,7 @@ export default function ActivationPage() {
         .from("users")
         .update({
           is_activated: true,
+          active_package_id: packageId, // Include active_package_id when activating
           deposited_balance: depositedFunds - Number(pkg.price),
           wallet_balance: (user.wallet_balance || 0) - Number(pkg.price),
           updated_at: new Date().toISOString(),
