@@ -89,9 +89,12 @@
   * {
     @apply border-border outline-ring/50;
   }
-  /* Fixed missing spaces between Tailwind classes */
+
+  /* Removed @apply with arbitrary values, using plain CSS instead for Tailwind v4 compatibility */
   body {
-    @apply bg-gradient-to-br from-[#0f172a] to-[#1e1b4b] text-foreground min-h-screen;
+    min-height: 100vh;
+    background: linear-gradient(to bottom right, #0f172a, #1e1b4b);
+    color: rgb(var(--foreground));
   }
 
   /* Glassmorphism utilities */

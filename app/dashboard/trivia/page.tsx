@@ -11,7 +11,7 @@ import { Brain, CheckCircle, XCircle, Lock } from "lucide-react"
 import { motion } from "framer-motion"
 import confetti from "canvas-confetti"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { getUserProfile, getAvailableTriviaQuestions, getTodayTriviaCount, completeTask } from "@/lib/supabase/queries"
+import { getUserProfile, getTodayTriviaCount, completeTask } from "@/lib/supabase/queries"
 
 const DAILY_TRIVIA_LIMIT = 2
 
@@ -59,12 +59,34 @@ export default function TriviaPage() {
         return
       }
 
-      const [availableQuestions, count] = await Promise.all([
-        getAvailableTriviaQuestions(authUser.id),
+      const [allQuestions, count] = await Promise.all([
+        (async () => {
+          const { data, error } = await supabase.from("trivia_questions").select("*").eq("is_active", true)
+
+          if (error) throw error
+
+          // Get completed question IDs
+          const { data: completions } = await supabase
+            .from("user_task_completions")
+            .select("task_id")
+            .eq("user_id", authUser.id)
+            .eq("task_type", "trivia")
+            .gte("completed_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+
+          const completedIds = new Set(completions?.map((c) => c.task_id) || [])
+
+          // Filter and mark locked
+          return (data || [])
+            .filter((q) => !completedIds.has(q.id))
+            .map((q) => ({
+              ...q,
+              isLocked: q.package_id && q.package_id !== profile.active_package_id,
+            }))
+        })(),
         getTodayTriviaCount(authUser.id),
       ])
 
-      setQuestions(availableQuestions)
+      setQuestions(allQuestions)
       setTodayCount(count)
 
       initAudio()
@@ -77,6 +99,15 @@ export default function TriviaPage() {
   }
 
   const startQuestion = (question: any) => {
+    if (question.isLocked) {
+      toast({
+        title: "Package Required",
+        description: "This question requires a different package. Upgrade to unlock!",
+        variant: "destructive",
+      })
+      return
+    }
+
     setQuestions(questions.filter((q) => q.id !== question.id))
     setCurrentQuestion(question)
     setSelectedAnswer(null)
@@ -297,9 +328,20 @@ export default function TriviaPage() {
                 key={question.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: question.isLocked ? 1 : 1.02 }}
               >
-                <Card className="glass-card p-6 cursor-pointer" onClick={() => startQuestion(question)}>
+                <Card
+                  className={`glass-card p-6 ${question.isLocked ? "opacity-60 relative" : "cursor-pointer"}`}
+                  onClick={() => startQuestion(question)}
+                >
+                  {question.isLocked && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                      <div className="text-center">
+                        <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm font-medium text-muted-foreground">Upgrade Package</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
                       <Brain className="w-6 h-6 text-success" />

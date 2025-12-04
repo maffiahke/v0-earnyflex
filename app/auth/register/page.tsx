@@ -14,6 +14,7 @@ import Link from "next/link"
 
 export default function RegisterPage() {
   const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("") // Added email field
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [fundPassword, setFundPassword] = useState("")
@@ -95,16 +96,18 @@ export default function RegisterPage() {
         throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
       }
 
+      if (!email || !email.includes("@")) {
+        throw new Error("Please enter a valid email address")
+      }
+
       if (fundPassword.length < 4 || !/^\d+$/.test(fundPassword)) {
         throw new Error("Fund password must be at least 4 digits")
       }
 
       const supabase = createClient()
 
-      const email = `${phone.replace("+", "")}@earnyflex.app`
-
       const { data: authData, error } = await supabase.auth.signUp({
-        email,
+        email, // Using actual email instead of generated one
         password,
         options: {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
@@ -141,10 +144,10 @@ export default function RegisterPage() {
   const isSubmitDisabled = isLoading || (invitationCode.trim().length > 0 && referralCodeValid === false)
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-primary/5">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center mb-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -153,19 +156,19 @@ export default function RegisterPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-8 h-8 text-primary-foreground"
+              className="w-7 h-7 text-primary-foreground"
             >
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Sign Up</h1>
-          <p className="text-muted-foreground">Register Using Your Invitation Code</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Sign Up</h1>
+          <p className="text-sm text-muted-foreground">Register Using Your Invitation Code</p>
         </div>
 
-        <div className="glass-card border-border/50 rounded-lg p-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="glass-card border-border/50 rounded-lg p-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="phone" className="text-foreground text-sm font-medium mb-2 block">
+              <Label htmlFor="phone" className="text-foreground text-sm font-medium mb-1.5 block">
                 Phone Number
               </Label>
               <Input
@@ -175,12 +178,27 @@ export default function RegisterPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                className="h-14 rounded-xl bg-background/50 text-base"
+                className="h-12 rounded-xl bg-background/50 text-base"
               />
             </div>
 
             <div>
-              <Label htmlFor="username" className="text-foreground text-sm font-medium mb-2 block">
+              <Label htmlFor="email" className="text-foreground text-sm font-medium mb-1.5 block">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-12 rounded-xl bg-background/50 text-base"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="username" className="text-foreground text-sm font-medium mb-1.5 block">
                 User Name
               </Label>
               <Input
@@ -190,12 +208,12 @@ export default function RegisterPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="h-14 rounded-xl bg-background/50 text-base"
+                className="h-12 rounded-xl bg-background/50 text-base"
               />
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-foreground text-sm font-medium mb-2 block">
+              <Label htmlFor="password" className="text-foreground text-sm font-medium mb-1.5 block">
                 Password
               </Label>
               <div className="relative">
@@ -207,7 +225,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="h-14 rounded-xl bg-background/50 text-base pr-12"
+                  className="h-12 rounded-xl bg-background/50 text-base pr-12"
                 />
                 <button
                   type="button"
@@ -220,7 +238,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Label htmlFor="fundPassword" className="text-foreground text-sm font-medium mb-2 block">
+              <Label htmlFor="fundPassword" className="text-foreground text-sm font-medium mb-1.5 block">
                 Fund Password
               </Label>
               <div className="relative">
@@ -232,7 +250,7 @@ export default function RegisterPage() {
                   onChange={(e) => setFundPassword(e.target.value)}
                   required
                   minLength={4}
-                  className="h-14 rounded-xl bg-background/50 text-base pr-12"
+                  className="h-12 rounded-xl bg-background/50 text-base pr-12"
                 />
                 <button
                   type="button"
@@ -245,8 +263,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Label htmlFor="invitationCode" className="text-foreground text-sm font-medium mb-2 block">
-                Invitation Code <span className="text-muted-foreground">(Optional)</span>
+              <Label htmlFor="invitationCode" className="text-foreground text-sm font-medium mb-1.5 block">
+                Invitation Code <span className="text-muted-foreground text-xs">(Optional)</span>
               </Label>
               <div className="relative">
                 <Input
@@ -255,7 +273,7 @@ export default function RegisterPage() {
                   placeholder="216465"
                   value={invitationCode}
                   onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
-                  className="h-14 rounded-xl bg-background/50 text-base"
+                  className="h-12 rounded-xl bg-background/50 text-base"
                 />
                 {isValidatingCode && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
@@ -298,19 +316,19 @@ export default function RegisterPage() {
                   </div>
                 )}
               </div>
-              {referralCodeValid === false && <p className="text-red-500 text-sm mt-1">Invalid invitation code</p>}
-              {referralCodeValid === true && <p className="text-green-500 text-sm mt-1">Valid invitation code ✓</p>}
+              {referralCodeValid === false && <p className="text-red-500 text-xs mt-1">Invalid invitation code</p>}
+              {referralCodeValid === true && <p className="text-green-500 text-xs mt-1">Valid invitation code ✓</p>}
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitDisabled}
-              className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold rounded-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold rounded-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Creating account..." : "Register"}
             </Button>
 
-            <p className="text-center text-muted-foreground mt-6">
+            <p className="text-center text-muted-foreground text-sm mt-4">
               Joined us before?{" "}
               <Link href="/auth/login" className="text-primary font-medium hover:underline">
                 Login

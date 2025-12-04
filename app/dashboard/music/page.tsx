@@ -74,24 +74,16 @@ export default function MusicTasksPage() {
       const canDo = await canDoTask(authUser.id, "music")
       setCanDoToday(canDo)
 
-      if (canDo) {
-        let query = supabase.from("music_tasks").select("*").eq("is_active", true)
+      const { data: allTasks, error } = await supabase.from("music_tasks").select("*").eq("is_active", true)
 
-        // Only add package filter if user has an active package
-        if (profile.active_package_id) {
-          query = query.or(`package_id.is.null,package_id.eq.${profile.active_package_id}`)
-        } else {
-          // Show only tasks without package restrictions
-          query = query.is("package_id", null)
-        }
+      if (error) throw error
 
-        const { data: tasks, error } = await query
+      const tasksWithLockStatus = (allTasks || []).map((task) => ({
+        ...task,
+        isLocked: task.package_id && task.package_id !== profile.active_package_id,
+      }))
 
-        if (error) throw error
-        setTasks(tasks || [])
-      } else {
-        setTasks([])
-      }
+      setTasks(canDo ? tasksWithLockStatus : [])
 
       initAudio()
     } catch (error) {
@@ -119,6 +111,15 @@ export default function MusicTasksPage() {
   if (!user) return null
 
   const startTask = (task: any) => {
+    if (task.isLocked) {
+      toast({
+        title: "Package Required",
+        description: "This task requires a different package. Upgrade to unlock!",
+        variant: "destructive",
+      })
+      return
+    }
+
     setCurrentTask(task)
     setTasks(tasks.filter((t) => t.id !== task.id))
     setProgress(0)
@@ -348,9 +349,20 @@ export default function MusicTasksPage() {
                 key={task.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: task.isLocked ? 1 : 1.02 }}
               >
-                <Card className="glass-card p-6 cursor-pointer" onClick={() => startTask(task)}>
+                <Card
+                  className={`glass-card p-6 ${task.isLocked ? "opacity-60 relative" : "cursor-pointer"}`}
+                  onClick={() => startTask(task)}
+                >
+                  {task.isLocked && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                      <div className="text-center">
+                        <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm font-medium text-muted-foreground">Upgrade Package</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex gap-4">
                     <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                       <Music className="w-10 h-10 text-primary" />
