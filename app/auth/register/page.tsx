@@ -141,33 +141,31 @@ export default function RegisterPage() {
   const isSubmitDisabled = isLoading || (invitationCode.trim().length > 0 && referralCodeValid === false)
 
   return (
-    <div className="min-h-screen bg-[#1a1f3a] flex flex-col">
-      <div className="h-32 bg-[#1a1f3a]" />
-
-      <div className="flex-1 bg-white rounded-t-[2rem] px-6 py-8">
-        <div className="max-w-md mx-auto">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-[#1a1f3a] rounded-xl flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#7c3aed"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-8 h-8"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Sign Up</h1>
-            <p className="text-gray-500">Register Using Your Invitaiton Code</p>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-8 h-8 text-primary-foreground"
+            >
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
           </div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Sign Up</h1>
+          <p className="text-muted-foreground">Register Using Your Invitation Code</p>
+        </div>
 
+        <div className="glass-card border-border/50 rounded-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label htmlFor="phone" className="text-gray-700 text-sm font-medium mb-2 block">
+              <Label htmlFor="phone" className="text-foreground text-sm font-medium mb-2 block">
                 Phone Number
               </Label>
               <Input
@@ -177,12 +175,12 @@ export default function RegisterPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                className="h-14 rounded-xl border-gray-300 bg-white text-base"
+                className="h-14 rounded-xl bg-background/50 text-base"
               />
             </div>
 
             <div>
-              <Label htmlFor="username" className="text-gray-700 text-sm font-medium mb-2 block">
+              <Label htmlFor="username" className="text-foreground text-sm font-medium mb-2 block">
                 User Name
               </Label>
               <Input
@@ -192,12 +190,12 @@ export default function RegisterPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="h-14 rounded-xl border-gray-300 bg-white text-base"
+                className="h-14 rounded-xl bg-background/50 text-base"
               />
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-gray-700 text-sm font-medium mb-2 block">
+              <Label htmlFor="password" className="text-foreground text-sm font-medium mb-2 block">
                 Password
               </Label>
               <div className="relative">
@@ -209,12 +207,12 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="h-14 rounded-xl border-gray-300 bg-white text-base pr-12"
+                  className="h-14 rounded-xl bg-background/50 text-base pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -222,7 +220,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Label htmlFor="fundPassword" className="text-gray-700 text-sm font-medium mb-2 block">
+              <Label htmlFor="fundPassword" className="text-foreground text-sm font-medium mb-2 block">
                 Fund Password
               </Label>
               <div className="relative">
@@ -234,12 +232,12 @@ export default function RegisterPage() {
                   onChange={(e) => setFundPassword(e.target.value)}
                   required
                   minLength={4}
-                  className="h-14 rounded-xl border-gray-300 bg-white text-base pr-12"
+                  className="h-14 rounded-xl bg-background/50 text-base pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowFundPassword(!showFundPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
                 >
                   {showFundPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -247,8 +245,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Label htmlFor="invitationCode" className="text-gray-700 text-sm font-medium mb-2 block">
-                Invitation Code <span className="text-gray-400">(Optional)</span>
+              <Label htmlFor="invitationCode" className="text-foreground text-sm font-medium mb-2 block">
+                Invitation Code <span className="text-muted-foreground">(Optional)</span>
               </Label>
               <div className="relative">
                 <Input
@@ -257,11 +255,11 @@ export default function RegisterPage() {
                   placeholder="216465"
                   value={invitationCode}
                   onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
-                  className="h-14 rounded-xl border-gray-300 bg-white text-base"
+                  className="h-14 rounded-xl bg-background/50 text-base"
                 />
                 {isValidatingCode && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full" />
+                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
                   </div>
                 )}
                 {!isValidatingCode && referralCodeValid !== null && (
@@ -307,14 +305,14 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isSubmitDisabled}
-              className="w-full h-14 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-base font-semibold rounded-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold rounded-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Creating account..." : "Register"}
             </Button>
 
-            <p className="text-center text-gray-600 mt-6">
+            <p className="text-center text-muted-foreground mt-6">
               Joined us before?{" "}
-              <Link href="/auth/login" className="text-purple-600 font-medium hover:underline">
+              <Link href="/auth/login" className="text-primary font-medium hover:underline">
                 Login
               </Link>
             </p>
