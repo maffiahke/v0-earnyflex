@@ -23,7 +23,7 @@ export default function WalletPage() {
   const [user, setUser] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [depositAmount, setDepositAmount] = useState<number>(500)
+  const [depositAmount, setDepositAmount] = useState<number>(1300)
   const [depositMethod, setDepositMethod] = useState<"mpesa_stk" | "mpesa_paybill" | "bank">("mpesa_stk")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
@@ -32,7 +32,7 @@ export default function WalletPage() {
   const [processing, setProcessing] = useState(false)
   const [showPaybillInstructions, setShowPaybillInstructions] = useState(false)
 
-  const PACKAGE_AMOUNTS = [500, 1000, 2500]
+  const PACKAGE_AMOUNTS = [1300, 3000, 5000]
 
   useEffect(() => {
     loadUser()
@@ -109,7 +109,7 @@ export default function WalletPage() {
             title: "STK Push Sent",
             description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
           })
-          setDepositAmount(500)
+          setDepositAmount(1300)
           setPhoneNumber("")
           setTimeout(() => loadUser(), 2000)
         } else {
@@ -163,7 +163,7 @@ export default function WalletPage() {
         description: "Your deposit will be processed by admin",
       })
 
-      setDepositAmount(500)
+      setDepositAmount(1300)
       loadUser()
     } catch (error) {
       console.error("Error:", error)
@@ -489,7 +489,7 @@ export default function WalletPage() {
                       <Button
                         onClick={() => {
                           setShowPaybillInstructions(false)
-                          setDepositAmount(500)
+                          setDepositAmount(1300)
                         }}
                         className="w-full"
                       >
