@@ -29,6 +29,7 @@ export default function MusicTasksPage() {
   const [loading, setLoading] = useState(true)
   const [canDoToday, setCanDoToday] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     loadData()
@@ -37,6 +38,10 @@ export default function MusicTasksPage() {
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
     }
   }, [])
 
@@ -62,7 +67,6 @@ export default function MusicTasksPage() {
         const musicTasks = await getMusicTasks()
         setTasks(musicTasks)
       } else {
-        // Clear tasks if user can't do any today
         setTasks([])
       }
 
@@ -94,6 +98,19 @@ export default function MusicTasksPage() {
     setTimeRemaining(task.duration)
     setIsPlaying(true)
 
+    if (audioRef.current) {
+      audioRef.current.pause()
+    }
+    audioRef.current = new Audio(task.audio_url)
+    audioRef.current.play().catch((error) => {
+      console.error("Error playing audio:", error)
+      toast({
+        title: "Audio Error",
+        description: "Could not play audio file",
+        variant: "destructive",
+      })
+    })
+
     const interval = setInterval(() => {
       setProgress((prev) => {
         const newProgress = prev + 100 / task.duration
@@ -115,10 +132,18 @@ export default function MusicTasksPage() {
 
     setIsPlaying(!isPlaying)
 
-    if (isPlaying && intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
+    if (isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     } else {
+      if (audioRef.current) {
+        audioRef.current.play().catch(console.error)
+      }
       const interval = setInterval(() => {
         setProgress((prev) => {
           const newProgress = prev + 100 / currentTask.duration
@@ -138,6 +163,11 @@ export default function MusicTasksPage() {
   async function handleTaskComplete(task: any) {
     setIsPlaying(false)
     setShowSuccess(true)
+
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
 
     try {
       const supabase = createBrowserClient()
@@ -289,7 +319,6 @@ export default function MusicTasksPage() {
           </div>
         ) : null}
 
-        {/* Success Modal */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div

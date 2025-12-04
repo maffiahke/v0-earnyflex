@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { CheckCircle, XCircle, Clock } from "lucide-react"
 import { motion } from "framer-motion"
+import { approveDeposit, rejectDeposit, approveWithdrawal, rejectWithdrawal } from "@/app/actions/admin-transactions"
 
 export default function AdminTransactionsPage() {
   const router = useRouter()
@@ -49,85 +50,73 @@ export default function AdminTransactionsPage() {
   const pendingWithdrawals = transactions.filter((t) => t.type === "withdraw" && t.status === "pending")
 
   const handleApproveDeposit = async (transactionId: string, userId: string, amount: number) => {
-    const supabase = createBrowserClient()
+    const result = await approveDeposit(transactionId, userId, amount)
 
-    const { error: txError } = await supabase
-      .from("transactions")
-      .update({ status: "completed" })
-      .eq("id", transactionId)
-
-    if (!txError) {
-      const { error: userError } = await supabase.rpc("add_to_wallet", {
-        p_user_id: userId,
-        p_amount: amount,
-      })
-
-      if (userError) {
-        await supabase
-          .from("users")
-          .update({ wallet_balance: supabase.raw(`wallet_balance + ${amount}`) })
-          .eq("id", userId)
-      }
-
+    if (result.success) {
       setTransactions(transactions.map((t) => (t.id === transactionId ? { ...t, status: "completed" } : t)))
       toast({
         title: "Deposit Approved",
         description: `KSh ${amount} credited to user`,
       })
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Failed to approve deposit",
+        variant: "destructive",
+      })
     }
   }
 
   const handleRejectDeposit = async (transactionId: string) => {
-    const supabase = createBrowserClient()
-    const { error } = await supabase.from("transactions").update({ status: "rejected" }).eq("id", transactionId)
+    const result = await rejectDeposit(transactionId)
 
-    if (!error) {
+    if (result.success) {
       setTransactions(transactions.map((t) => (t.id === transactionId ? { ...t, status: "rejected" } : t)))
       toast({
         title: "Deposit Rejected",
         description: "Deposit request has been rejected",
       })
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Failed to reject deposit",
+        variant: "destructive",
+      })
     }
   }
 
   const handleApproveWithdrawal = async (transactionId: string, userId: string, amount: number) => {
-    const supabase = createBrowserClient()
+    const result = await approveWithdrawal(transactionId, userId, amount)
 
-    const { error: txError } = await supabase
-      .from("transactions")
-      .update({ status: "completed" })
-      .eq("id", transactionId)
-
-    if (!txError) {
-      await supabase
-        .rpc("remove_from_wallet", {
-          p_user_id: userId,
-          p_amount: amount,
-        })
-        .catch(() => {
-          supabase
-            .from("users")
-            .update({ wallet_balance: supabase.raw(`wallet_balance - ${amount}`) })
-            .eq("id", userId)
-        })
-
+    if (result.success) {
       setTransactions(transactions.map((t) => (t.id === transactionId ? { ...t, status: "completed" } : t)))
       toast({
         title: "Withdrawal Approved",
         description: `KSh ${amount} deducted from user wallet`,
       })
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Failed to approve withdrawal",
+        variant: "destructive",
+      })
     }
   }
 
   const handleRejectWithdrawal = async (transactionId: string) => {
-    const supabase = createBrowserClient()
-    const { error } = await supabase.from("transactions").update({ status: "rejected" }).eq("id", transactionId)
+    const result = await rejectWithdrawal(transactionId)
 
-    if (!error) {
+    if (result.success) {
       setTransactions(transactions.map((t) => (t.id === transactionId ? { ...t, status: "rejected" } : t)))
       toast({
         title: "Withdrawal Rejected",
         description: "Funds remain in user wallet",
+      })
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Failed to reject withdrawal",
+        variant: "destructive",
       })
     }
   }

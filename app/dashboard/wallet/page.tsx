@@ -196,6 +196,15 @@ export default function WalletPage() {
       return
     }
 
+    if (amount < 250) {
+      toast({
+        title: "Amount Too Low",
+        description: "Minimum withdrawal amount is KSh 250",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (amount > (user?.wallet_balance || 0)) {
       toast({
         title: "Insufficient balance",
