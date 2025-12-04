@@ -77,13 +77,21 @@ export async function getAvailableTriviaQuestions(userId: string) {
 
   const completedIds = completions?.map((c) => c.task_id) || []
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("trivia_questions")
     .select("*")
     .eq("is_active", true)
     .not("id", "in", `(${completedIds.length > 0 ? completedIds.join(",") : "00000000-0000-0000-0000-000000000000"})`)
-    .or(`package_id.is.null,package_id.eq.${user?.active_package_id || "null"}`)
-    .order("created_at", { ascending: false })
+
+  // Only add package filter if user has an active package
+  if (user?.active_package_id) {
+    query = query.or(`package_id.is.null,package_id.eq.${user.active_package_id}`)
+  } else {
+    // Show only questions without package restrictions
+    query = query.is("package_id", null)
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false })
 
   if (error) throw error
   return data || []

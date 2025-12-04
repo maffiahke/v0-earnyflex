@@ -63,11 +63,17 @@ export default function MusicTasksPage() {
       setCanDoToday(canDo)
 
       if (canDo) {
-        const { data: tasks, error } = await supabase
-          .from("music_tasks")
-          .select("*")
-          .eq("is_active", true)
-          .or(`package_id.is.null,package_id.eq.${profile.active_package_id || "null"}`)
+        let query = supabase.from("music_tasks").select("*").eq("is_active", true)
+
+        // Only add package filter if user has an active package
+        if (profile.active_package_id) {
+          query = query.or(`package_id.is.null,package_id.eq.${profile.active_package_id}`)
+        } else {
+          // Show only tasks without package restrictions
+          query = query.is("package_id", null)
+        }
+
+        const { data: tasks, error } = await query
 
         if (error) throw error
         setTasks(tasks || [])
@@ -78,7 +84,11 @@ export default function MusicTasksPage() {
       initAudio()
     } catch (error) {
       console.error("Error loading data:", error)
-      router.push("/auth/login")
+      toast({
+        title: "Error",
+        description: "Failed to load music tasks. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
