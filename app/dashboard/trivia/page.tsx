@@ -47,11 +47,11 @@ export default function TriviaPage() {
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
 
-      // If user doesn't have active package or it's expired, don't load questions
-      if (
-        !profile.active_package_id ||
-        (profile.package_expiry_date && new Date(profile.package_expiry_date) < new Date())
-      ) {
+      const hasActiveSubscription =
+        profile.active_package_id &&
+        (!profile.package_expiry_date || new Date(profile.package_expiry_date) > new Date())
+
+      if (!hasActiveSubscription) {
         setQuestions([])
         setTodayCount(0)
         initAudio()
@@ -209,8 +209,7 @@ export default function TriviaPage() {
           </div>
         </div>
 
-        {user &&
-        (!user.active_package_id || (user.package_expiry_date && new Date(user.package_expiry_date) < new Date())) ? (
+        {!user.active_package_id || (user.package_expiry_date && new Date(user.package_expiry_date) < new Date()) ? (
           <Card className="glass-card p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
               <Lock className="w-8 h-8 text-accent" />

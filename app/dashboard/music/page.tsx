@@ -59,11 +59,11 @@ export default function MusicTasksPage() {
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
 
-      // If user doesn't have active package or it's expired, don't load tasks
-      if (
-        !profile.active_package_id ||
-        (profile.package_expiry_date && new Date(profile.package_expiry_date) < new Date())
-      ) {
+      const hasActiveSubscription =
+        profile.active_package_id &&
+        (!profile.package_expiry_date || new Date(profile.package_expiry_date) > new Date())
+
+      if (!hasActiveSubscription) {
         setCanDoToday(false)
         setTasks([])
         initAudio()
