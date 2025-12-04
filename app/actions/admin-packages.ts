@@ -13,6 +13,7 @@ export async function createPackage(data: {
   price: number
   benefits: string[]
   description: string
+  duration_days: number
 }) {
   const supabase = getAdminClient()
 
@@ -37,6 +38,7 @@ export async function updatePackage(
     price: number
     benefits: string[]
     description: string
+    duration_days: number
   },
 ) {
   const supabase = getAdminClient()

@@ -47,6 +47,18 @@ export default function TriviaPage() {
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
 
+      // If user doesn't have active package or it's expired, don't load questions
+      if (
+        !profile.active_package_id ||
+        (profile.package_expiry_date && new Date(profile.package_expiry_date) < new Date())
+      ) {
+        setQuestions([])
+        setTodayCount(0)
+        initAudio()
+        setLoading(false)
+        return
+      }
+
       const [availableQuestions, count] = await Promise.all([
         getAvailableTriviaQuestions(authUser.id),
         getTodayTriviaCount(authUser.id),
@@ -166,7 +178,25 @@ export default function TriviaPage() {
           </div>
         </div>
 
-        {dailyLimitReached && !currentQuestion && (
+        {user &&
+        (!user.active_package_id || (user.package_expiry_date && new Date(user.package_expiry_date) < new Date())) ? (
+          <Card className="glass-card p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-accent" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Subscription Required</h2>
+            <p className="text-muted-foreground mb-4">
+              {user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
+                ? "Your subscription has expired. Please renew to continue earning."
+                : "You need an active subscription to access trivia questions."}
+            </p>
+            <Button onClick={() => router.push("/dashboard/activation")} className="bg-accent hover:bg-accent/90">
+              {user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
+                ? "Renew Subscription"
+                : "View Packages"}
+            </Button>
+          </Card>
+        ) : dailyLimitReached && !currentQuestion ? (
           <Card className="glass-card p-6 border-accent/50">
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-accent" />
@@ -178,7 +208,7 @@ export default function TriviaPage() {
               </div>
             </div>
           </Card>
-        )}
+        ) : null}
 
         {currentQuestion ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>

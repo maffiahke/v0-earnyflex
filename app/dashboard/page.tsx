@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Wallet, TrendingUp, Gift, CheckCircle2, Music, Brain, Users, Lock } from "lucide-react"
+import { Wallet, TrendingUp, Gift, CheckCircle2, Music, Brain, Users, Lock, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { playSound } from "@/lib/sounds"
 import Link from "next/link"
@@ -132,6 +132,9 @@ export default function DashboardPage() {
 
   if (!user) return null
 
+  const hasActiveSubscription =
+    user.active_package_id && user.package_expiry_date && new Date(user.package_expiry_date) > new Date()
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -139,6 +142,28 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold">Welcome back, {user.name}!</h1>
           <p className="text-muted-foreground">Here's your earning overview</p>
         </div>
+
+        {!hasActiveSubscription && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="glass-card p-6 border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-6 h-6 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1 text-amber-500">Activate to Start Earning!</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    You need an active subscription to access music and trivia tasks. Purchase an activation package now
+                    to unlock earning opportunities!
+                  </p>
+                  <Link href="/dashboard/activation">
+                    <Button className="bg-amber-500 hover:bg-amber-600 text-white">View Activation Packages</Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Wallet Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

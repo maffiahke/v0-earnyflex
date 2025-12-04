@@ -74,11 +74,16 @@ export default function ActivationPage() {
 
       if (!authUser) return
 
+      const expiryDate = new Date()
+      const durationDays = pkg.duration_days || 30
+      expiryDate.setDate(expiryDate.getDate() + durationDays)
+
       await supabase
         .from("users")
         .update({
           is_activated: true,
-          active_package_id: packageId, // Include active_package_id when activating
+          active_package_id: packageId,
+          package_expiry_date: expiryDate.toISOString(),
           deposited_balance: depositedFunds - Number(pkg.price),
           wallet_balance: (user.wallet_balance || 0) - Number(pkg.price),
           updated_at: new Date().toISOString(),
@@ -90,14 +95,14 @@ export default function ActivationPage() {
         type: "activation",
         amount: pkg.price,
         status: "completed",
-        description: `Account activation - ${pkg.name} package`,
+        description: `Account activation - ${pkg.name} package (expires ${expiryDate.toLocaleDateString()})`,
         created_at: new Date().toISOString(),
       })
 
       playSound("success")
       toast({
         title: "Account Activated!",
-        description: "You can now withdraw and earn referral bonuses",
+        description: `You can now access all tasks. Subscription expires on ${expiryDate.toLocaleDateString()}`,
       })
 
       router.push("/dashboard")
@@ -124,6 +129,82 @@ export default function ActivationPage() {
   if (!user) return null
 
   if (user.is_activated) {
+    const packageExpired = user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
+
+    if (packageExpired) {
+      return (
+        <DashboardLayout>
+          <div className="space-y-6">
+            <div className="text-center max-w-2xl mx-auto">
+              <h1 className="text-3xl font-bold mb-3">Renew Your Subscription</h1>
+              <p className="text-muted-foreground">
+                Your subscription has expired. Choose a package to continue earning.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {packages.map((pkg, index) => (
+                <motion.div
+                  key={pkg.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className={`glass-card p-8 ${index === 1 ? "border-accent border-2" : ""}`}>
+                    {index === 1 && (
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <Sparkles className="w-4 h-4 text-accent" />
+                        <span className="text-xs font-semibold text-accent uppercase">Most Popular</span>
+                      </div>
+                    )}
+
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-bold mb-2">{pkg.name}</h3>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-4xl font-bold text-primary">
+                          KSh {Number(pkg.price).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">{pkg.duration_days || 30} days access</p>
+                    </div>
+
+                    <div className="space-y-3 mb-6">
+                      {pkg.benefits &&
+                        pkg.benefits.map((benefit: string, idx: number) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+                            <span className="text-sm">{benefit}</span>
+                          </div>
+                        ))}
+                    </div>
+
+                    <Button
+                      onClick={() => handleActivate(pkg.id)}
+                      className={`w-full ${
+                        index === 1
+                          ? "bg-accent hover:bg-accent/90 text-accent-foreground"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      }`}
+                      size="lg"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Renew Now
+                    </Button>
+
+                    <p className="text-xs text-center text-muted-foreground mt-4">
+                      {(user.deposited_balance || 0) >= Number(pkg.price)
+                        ? "Sufficient deposited balance"
+                        : `Need KSh ${(Number(pkg.price) - (user.deposited_balance || 0)).toLocaleString()} more in deposited funds`}
+                    </p>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </DashboardLayout>
+      )
+    }
+
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -131,8 +212,13 @@ export default function ActivationPage() {
             <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-success" />
             </div>
-            <h2 className="text-2xl font-bold mb-3">Account Already Activated</h2>
-            <p className="text-muted-foreground mb-6">Your account is active and you can enjoy all features</p>
+            <h2 className="text-2xl font-bold mb-3">Account Active</h2>
+            <p className="text-muted-foreground mb-2">Your subscription is active and you can enjoy all features</p>
+            {user.package_expiry_date && (
+              <p className="text-sm text-muted-foreground mb-6">
+                Expires on: {new Date(user.package_expiry_date).toLocaleDateString()}
+              </p>
+            )}
             <Button onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
           </Card>
         </div>
@@ -169,6 +255,7 @@ export default function ActivationPage() {
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-4xl font-bold text-primary">KSh {Number(pkg.price).toLocaleString()}</span>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-2">{pkg.duration_days || 30} days access</p>
                 </div>
 
                 <div className="space-y-3 mb-6">

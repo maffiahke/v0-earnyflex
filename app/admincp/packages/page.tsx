@@ -31,6 +31,7 @@ export default function AdminPackagesPage() {
     price: "",
     benefits: "",
     description: "",
+    duration_days: "30",
   })
 
   useEffect(() => {
@@ -117,6 +118,7 @@ export default function AdminPackagesPage() {
       price: "",
       benefits: "",
       description: "",
+      duration_days: "30",
     })
     setIsCreating(false)
     setEditingId(null)
@@ -141,6 +143,7 @@ export default function AdminPackagesPage() {
       price: Number(formData.price),
       benefits: benefitsArray,
       description: formData.description,
+      duration_days: Number(formData.duration_days),
     }
 
     try {
@@ -189,6 +192,7 @@ export default function AdminPackagesPage() {
       price: pkg.price.toString(),
       benefits: (pkg.benefits || []).join("\n"),
       description: pkg.description || "",
+      duration_days: (pkg.duration_days || 30).toString(),
     })
     setIsCreating(true)
   }
@@ -326,15 +330,32 @@ export default function AdminPackagesPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Package description"
-                    className="bg-background/50"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="duration_days">Duration (Days)*</Label>
+                    <Input
+                      id="duration_days"
+                      type="number"
+                      value={formData.duration_days}
+                      onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
+                      placeholder="30"
+                      className="bg-background/50"
+                      min="1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      How many days the package remains active after purchase
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Package description"
+                      className="bg-background/50"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="benefits">Benefits (one per line)*</Label>
@@ -392,6 +413,7 @@ export default function AdminPackagesPage() {
                 <div className="mb-4">
                   <p className="text-3xl font-bold text-primary">KSh {pkg.price.toLocaleString()}</p>
                   {pkg.description && <p className="text-sm text-muted-foreground">{pkg.description}</p>}
+                  <p className="text-sm text-muted-foreground mt-1">Valid for {pkg.duration_days || 30} days</p>
                 </div>
                 <div className="space-y-2">
                   {(pkg.benefits || []).map((benefit: string, i: number) => (

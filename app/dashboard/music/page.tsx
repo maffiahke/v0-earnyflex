@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import { playSound, initAudio } from "@/lib/sounds"
-import { Play, Pause, Sparkles, Music } from "lucide-react"
+import { Play, Pause, Sparkles, Music, Lock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -58,6 +58,18 @@ export default function MusicTasksPage() {
 
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
+
+      // If user doesn't have active package or it's expired, don't load tasks
+      if (
+        !profile.active_package_id ||
+        (profile.package_expiry_date && new Date(profile.package_expiry_date) < new Date())
+      ) {
+        setCanDoToday(false)
+        setTasks([])
+        initAudio()
+        setLoading(false)
+        return
+      }
 
       const canDo = await canDoTask(authUser.id, "music")
       setCanDoToday(canDo)
@@ -259,17 +271,38 @@ export default function MusicTasksPage() {
           <p className="text-muted-foreground">Listen to music and earn money (once per day)</p>
         </div>
 
-        {!canDoToday && !currentTask && (
+        {user &&
+        (!user.active_package_id || (user.package_expiry_date && new Date(user.package_expiry_date) < new Date())) ? (
           <Card className="glass-card p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Come Back Tomorrow!</h2>
-            <p className="text-muted-foreground mb-4">You've completed your music task for today.</p>
-            <p className="text-sm text-muted-foreground">
-              Music tasks refresh daily. Check back tomorrow for more earning opportunities!
+            <h2 className="text-2xl font-bold mb-2">Subscription Required</h2>
+            <p className="text-muted-foreground mb-4">
+              {user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
+                ? "Your subscription has expired. Please renew to continue earning."
+                : "You need an active subscription to access music tasks."}
             </p>
+            <Button onClick={() => router.push("/dashboard/activation")} className="bg-accent hover:bg-accent/90">
+              {user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
+                ? "Renew Subscription"
+                : "View Packages"}
+            </Button>
           </Card>
+        ) : (
+          !canDoToday &&
+          !currentTask && (
+            <Card className="glass-card p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Come Back Tomorrow!</h2>
+              <p className="text-muted-foreground mb-4">You've completed your music task for today.</p>
+              <p className="text-sm text-muted-foreground">
+                Music tasks refresh daily. Check back tomorrow for more earning opportunities!
+              </p>
+            </Card>
+          )
         )}
 
         {currentTask ? (
