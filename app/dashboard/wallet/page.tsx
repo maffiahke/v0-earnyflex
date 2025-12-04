@@ -32,7 +32,7 @@ export default function WalletPage() {
   const [processing, setProcessing] = useState(false)
   const [showPaybillInstructions, setShowPaybillInstructions] = useState(false)
 
-  const PACKAGE_AMOUNTS = [1300, 3000, 5000]
+  const PACKAGE_AMOUNTS = [1300, 3000, 7000]
 
   useEffect(() => {
     loadUser()
