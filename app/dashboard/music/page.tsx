@@ -101,30 +101,31 @@ export default function MusicTasksPage() {
     if (audioRef.current) {
       audioRef.current.pause()
     }
-    audioRef.current = new Audio(task.audio_url)
+
+    // Ensure the URL is properly encoded
+    const encodedUrl = task.audio_url.includes("%") ? task.audio_url : encodeURI(task.audio_url)
+
+    audioRef.current = new Audio(encodedUrl)
+    audioRef.current.crossOrigin = "anonymous"
+
+    audioRef.current.addEventListener("error", (e) => {
+      console.error("[v0] Audio error:", e)
+      console.error("[v0] Failed URL:", encodedUrl)
+      toast({
+        title: "Audio Error",
+        description: "Could not load audio file. Please check the URL format.",
+        variant: "destructive",
+      })
+    })
+
     audioRef.current.play().catch((error) => {
-      console.error("Error playing audio:", error)
+      console.error("[v0] Error playing audio:", error)
       toast({
         title: "Audio Error",
         description: "Could not play audio file",
         variant: "destructive",
       })
     })
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + 100 / task.duration
-        if (newProgress >= 100) {
-          clearInterval(interval)
-          handleTaskComplete(task)
-          return 100
-        }
-        return newProgress
-      })
-      setTimeRemaining((prev) => Math.max(0, prev - 1))
-    }, 1000)
-
-    intervalRef.current = interval
   }
 
   const togglePlayPause = () => {
