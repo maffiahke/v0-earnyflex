@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -22,27 +22,34 @@ export default function RegisterPage() {
   const [showFundPassword, setShowFundPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isValidatingCode, setIsValidatingCode] = useState(false)
-  const [referrerId, setReferrerId] = useState(null)
-  const [referrerName, setReferrerName] = useState(null)
-  const [referralCodeValid, setReferralCodeValid] = useState(null)
+  const [referrerId, setReferrerId] = useState<string | null>(null)
+  const [referrerName, setReferrerName] = useState<string | null>(null)
+  const [referralCodeValid, setReferralCodeValid] = useState<boolean | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
-  // Pre-fill invitation code from URL if present
-  useState(() => {
+  useEffect(() => {
     const ref = searchParams.get("ref")
     if (ref) {
       setInvitationCode(ref)
     }
-  })
+  }, [searchParams])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (invitationCode && invitationCode.trim().length > 0) {
+        validateReferralCode(invitationCode)
+      } else {
+        setReferralCodeValid(null)
+        setReferrerId(null)
+        setReferrerName(null)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [invitationCode])
 
   const validateReferralCode = async (code: string) => {
-    if (!code || code.trim().length === 0) {
-      setReferralCodeValid(null)
-      return
-    }
-
     if (code.length < 5) {
       setReferralCodeValid(false)
       return
@@ -59,6 +66,8 @@ export default function RegisterPage() {
 
       if (error || !data) {
         setReferralCodeValid(false)
+        setReferrerId(null)
+        setReferrerName(null)
       } else {
         setReferralCodeValid(true)
         setReferrerId(data.id)
@@ -66,25 +75,22 @@ export default function RegisterPage() {
       }
     } catch (error) {
       setReferralCodeValid(false)
+      setReferrerId(null)
+      setReferrerName(null)
     } finally {
       setIsValidatingCode(false)
     }
   }
-
-  useState(() => {
-    const timer = setTimeout(() => {
-      if (invitationCode) {
-        validateReferralCode(invitationCode)
-      }
-    }, 500)
-    return () => clearTimeout(timer)
-  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      if (invitationCode && invitationCode.trim().length > 0 && referralCodeValid === false) {
+        throw new Error("Invalid invitation code. Please enter a valid code or leave it empty.")
+      }
+
       if (!phone.match(/^\+?254[0-9]{9}$/)) {
         throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
       }
@@ -131,6 +137,8 @@ export default function RegisterPage() {
       setIsLoading(false)
     }
   }
+
+  const isSubmitDisabled = isLoading || (invitationCode.trim().length > 0 && referralCodeValid === false)
 
   return (
     <div className="min-h-screen bg-[#1a1f3a] flex flex-col">
@@ -298,7 +306,7 @@ export default function RegisterPage() {
 
             <Button
               type="submit"
-              disabled={isLoading || referralCodeValid === false}
+              disabled={isSubmitDisabled}
               className="w-full h-14 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-base font-semibold rounded-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Creating account..." : "Register"}
