@@ -28,6 +28,7 @@ export default function WalletPage() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawMethod, setWithdrawMethod] = useState<"mpesa" | "bank">("mpesa")
+  const [withdrawFundPassword, setWithdrawFundPassword] = useState("")
   const [processing, setProcessing] = useState(false)
   const [showPaybillInstructions, setShowPaybillInstructions] = useState(false)
 
@@ -204,6 +205,15 @@ export default function WalletPage() {
       return
     }
 
+    if (!withdrawFundPassword) {
+      toast({
+        title: "Fund Password Required",
+        description: "Please enter your fund password to continue",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       const supabase = createBrowserClient()
       const {
@@ -211,6 +221,16 @@ export default function WalletPage() {
       } = await supabase.auth.getUser()
 
       if (!authUser) return
+
+      const storedFundPassword = authUser.user_metadata?.fund_password
+      if (!storedFundPassword || storedFundPassword !== withdrawFundPassword) {
+        toast({
+          title: "Incorrect Fund Password",
+          description: "The fund password you entered is incorrect",
+          variant: "destructive",
+        })
+        return
+      }
 
       await supabase.from("transactions").insert({
         user_id: authUser.id,
@@ -228,6 +248,7 @@ export default function WalletPage() {
       })
 
       setWithdrawAmount("")
+      setWithdrawFundPassword("")
       loadUser()
     } catch (error) {
       console.error("Error:", error)
@@ -508,6 +529,19 @@ export default function WalletPage() {
                       onChange={(e) => setWithdrawAmount(e.target.value)}
                       className="bg-background/50"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="withdraw-fund-password">Fund Password</Label>
+                    <Input
+                      id="withdraw-fund-password"
+                      type="password"
+                      placeholder="Enter your fund password"
+                      value={withdrawFundPassword}
+                      onChange={(e) => setWithdrawFundPassword(e.target.value)}
+                      className="bg-background/50"
+                    />
+                    <p className="text-xs text-muted-foreground">Enter the fund password you set during registration</p>
                   </div>
 
                   <Button

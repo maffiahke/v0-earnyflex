@@ -5,41 +5,55 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, UserPlus } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 
 export default function RegisterPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [referralCodeInput, setReferralCodeInput] = useState("")
+  const [fundPassword, setFundPassword] = useState("")
+  const [invitationCode, setInvitationCode] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showFundPassword, setShowFundPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const referralCode = searchParams.get("ref")
   const { toast } = useToast()
+
+  // Pre-fill invitation code from URL if present
+  useState(() => {
+    const ref = searchParams.get("ref")
+    if (ref) {
+      setInvitationCode(ref)
+    }
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      if (!phone.match(/^\+?254[0-9]{9}$/)) {
+        throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
+      }
+
+      if (fundPassword.length < 4 || !/^\d+$/.test(fundPassword)) {
+        throw new Error("Fund password must be at least 4 digits")
+      }
+
       const supabase = createClient()
 
       let referrerId = null
-      const finalReferralCode = referralCodeInput || referralCode
-
-      if (finalReferralCode) {
+      if (invitationCode) {
         const { data: referrer } = await supabase
           .from("users")
           .select("id")
-          .eq("referral_code", finalReferralCode.toUpperCase())
+          .eq("referral_code", invitationCode.toUpperCase())
           .single()
 
         if (referrer) {
@@ -47,13 +61,17 @@ export default function RegisterPage() {
         }
       }
 
-      const { error } = await supabase.auth.signUp({
+      const email = `${phone.replace("+", "")}@earnyflex.app`
+
+      const { data: authData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
           data: {
-            name,
+            name: username,
+            phone,
+            fund_password: fundPassword,
             referred_by: referrerId,
           },
         },
@@ -62,8 +80,8 @@ export default function RegisterPage() {
       if (error) throw error
 
       toast({
-        title: "Account created!",
-        description: `Welcome ${name}! You can now sign in.`,
+        title: "Account created successfully!",
+        description: `Welcome ${username}! Please check your phone for verification.`,
       })
 
       router.push("/auth/login")
@@ -79,102 +97,142 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </Link>
+    <div className="min-h-screen bg-[#1a1f3a] flex flex-col">
+      <div className="h-32 bg-[#1a1f3a]" />
 
-        <Card className="glass-card border-border/50">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-            <CardDescription className="text-muted-foreground">Sign up to start earning money today</CardDescription>
-            {referralCode && <p className="text-sm text-success">Referred by: {referralCode}</p>}
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="bg-background/50"
-                />
-              </div>
+      <div className="flex-1 bg-white rounded-t-[2rem] px-6 py-8">
+        <div className="max-w-md mx-auto">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-[#1a1f3a] rounded-xl flex items-center justify-center mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#7c3aed"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-8 h-8"
+              >
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Sign Up</h1>
+            <p className="text-gray-500">Register Using Your Invitaiton Code</p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-background/50"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <Label htmlFor="phone" className="text-gray-700 text-sm font-medium mb-2 block">
+                Phone Number
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+254 Phone number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                className="h-14 rounded-xl border-gray-300 bg-white text-base"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+            <div>
+              <Label htmlFor="username" className="text-gray-700 text-sm font-medium mb-2 block">
+                User Name
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="User Name"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="h-14 rounded-xl border-gray-300 bg-white text-base"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password" className="text-gray-700 text-sm font-medium mb-2 block">
+                Password
+              </Label>
+              <div className="relative">
                 <Input
                   id="password"
-                  type="password"
-                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="bg-background/50"
+                  className="h-14 rounded-xl border-gray-300 bg-white text-base pr-12"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-600"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+            <div>
+              <Label htmlFor="fundPassword" className="text-gray-700 text-sm font-medium mb-2 block">
+                Fund Password
+              </Label>
+              <div className="relative">
                 <Input
-                  id="referralCode"
-                  type="text"
-                  placeholder="Enter referral code"
-                  value={referralCodeInput || referralCode || ""}
-                  onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
-                  className="bg-background/50"
+                  id="fundPassword"
+                  type={showFundPassword ? "text" : "password"}
+                  placeholder="Fund Password"
+                  value={fundPassword}
+                  onChange={(e) => setFundPassword(e.target.value)}
+                  required
+                  minLength={4}
+                  className="h-14 rounded-xl border-gray-300 bg-white text-base pr-12"
                 />
-                <p className="text-xs text-muted-foreground">Have a referral code? Enter it to get bonus rewards!</p>
+                <button
+                  type="button"
+                  onClick={() => setShowFundPassword(!showFundPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-600"
+                >
+                  {showFundPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  "Creating account..."
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Create Account
-                  </>
-                )}
-              </Button>
+            <div>
+              <Label htmlFor="invitationCode" className="text-gray-700 text-sm font-medium mb-2 block">
+                Invitation Code
+              </Label>
+              <Input
+                id="invitationCode"
+                type="text"
+                placeholder="216465"
+                value={invitationCode}
+                onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
+                className="h-14 rounded-xl border-gray-300 bg-white text-base"
+              />
+            </div>
 
-              <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link href="/auth/login" className="text-primary hover:underline">
-                  Sign in
-                </Link>
-              </p>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-14 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-base font-semibold rounded-full mt-6"
+            >
+              {isLoading ? "Creating account..." : "Register"}
+            </Button>
+
+            <p className="text-center text-gray-600 mt-6">
+              Joined us before?{" "}
+              <Link href="/auth/login" className="text-purple-600 font-medium hover:underline">
+                Login
+              </Link>
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
