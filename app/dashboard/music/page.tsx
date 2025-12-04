@@ -61,6 +61,9 @@ export default function MusicTasksPage() {
       if (canDo) {
         const musicTasks = await getMusicTasks()
         setTasks(musicTasks)
+      } else {
+        // Clear tasks if user can't do any today
+        setTasks([])
       }
 
       initAudio()
@@ -170,6 +173,7 @@ export default function MusicTasksPage() {
       })
 
       setCanDoToday(false)
+      setTasks([])
 
       const profile = await getUserProfile(authUser.id)
       setUser(profile)

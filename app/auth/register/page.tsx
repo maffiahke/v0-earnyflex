@@ -21,6 +21,10 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showFundPassword, setShowFundPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isValidatingCode, setIsValidatingCode] = useState(false)
+  const [referrerId, setReferrerId] = useState(null)
+  const [referrerName, setReferrerName] = useState(null)
+  const [referralCodeValid, setReferralCodeValid] = useState(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -31,6 +35,49 @@ export default function RegisterPage() {
     if (ref) {
       setInvitationCode(ref)
     }
+  })
+
+  const validateReferralCode = async (code: string) => {
+    if (!code || code.trim().length === 0) {
+      setReferralCodeValid(null)
+      return
+    }
+
+    if (code.length < 5) {
+      setReferralCodeValid(false)
+      return
+    }
+
+    setIsValidatingCode(true)
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name")
+        .eq("referral_code", code.toUpperCase())
+        .single()
+
+      if (error || !data) {
+        setReferralCodeValid(false)
+      } else {
+        setReferralCodeValid(true)
+        setReferrerId(data.id)
+        setReferrerName(data.name)
+      }
+    } catch (error) {
+      setReferralCodeValid(false)
+    } finally {
+      setIsValidatingCode(false)
+    }
+  }
+
+  useState(() => {
+    const timer = setTimeout(() => {
+      if (invitationCode) {
+        validateReferralCode(invitationCode)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,19 +95,6 @@ export default function RegisterPage() {
 
       const supabase = createClient()
 
-      let referrerId = null
-      if (invitationCode) {
-        const { data: referrer } = await supabase
-          .from("users")
-          .select("id")
-          .eq("referral_code", invitationCode.toUpperCase())
-          .single()
-
-        if (referrer) {
-          referrerId = referrer.id
-        }
-      }
-
       const email = `${phone.replace("+", "")}@earnyflex.app`
 
       const { data: authData, error } = await supabase.auth.signUp({
@@ -72,7 +106,7 @@ export default function RegisterPage() {
             name: username,
             phone,
             fund_password: fundPassword,
-            referred_by: referrerId,
+            ...(referrerId && { referred_by: referrerId }),
           },
         },
       })
@@ -81,7 +115,9 @@ export default function RegisterPage() {
 
       toast({
         title: "Account created successfully!",
-        description: `Welcome ${username}! Please check your phone for verification.`,
+        description: referrerName
+          ? `Welcome ${username}! You were referred by ${referrerName}.`
+          : `Welcome ${username}!`,
       })
 
       router.push("/auth/login")
@@ -204,22 +240,66 @@ export default function RegisterPage() {
 
             <div>
               <Label htmlFor="invitationCode" className="text-gray-700 text-sm font-medium mb-2 block">
-                Invitation Code
+                Invitation Code <span className="text-gray-400">(Optional)</span>
               </Label>
-              <Input
-                id="invitationCode"
-                type="text"
-                placeholder="216465"
-                value={invitationCode}
-                onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
-                className="h-14 rounded-xl border-gray-300 bg-white text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="invitationCode"
+                  type="text"
+                  placeholder="216465"
+                  value={invitationCode}
+                  onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
+                  className="h-14 rounded-xl border-gray-300 bg-white text-base"
+                />
+                {isValidatingCode && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full" />
+                  </div>
+                )}
+                {!isValidatingCode && referralCodeValid !== null && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {referralCodeValid ? (
+                      <div className="text-green-500">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="text-red-500">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 001.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {referralCodeValid === false && <p className="text-red-500 text-sm mt-1">Invalid invitation code</p>}
+              {referralCodeValid === true && <p className="text-green-500 text-sm mt-1">Valid invitation code ✓</p>}
             </div>
 
             <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full h-14 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-base font-semibold rounded-full mt-6"
+              disabled={isLoading || referralCodeValid === false}
+              className="w-full h-14 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-base font-semibold rounded-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Creating account..." : "Register"}
             </Button>
