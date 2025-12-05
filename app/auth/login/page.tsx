@@ -15,7 +15,7 @@ import { ArrowLeft, LogIn } from "lucide-react"
 import Link from "next/link"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -26,10 +26,16 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      if (!phone.match(/^\+?254[0-9]{9}$/)) {
+        throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
+      }
+
       const supabase = createClient()
 
+      const emailFromPhone = `${phone.replace(/\+/g, "")}@earnyflex.app`
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailFromPhone,
         password,
       })
 
@@ -39,7 +45,7 @@ export default function LoginPage() {
 
       toast({
         title: "Welcome back!",
-        description: `Logged in as ${userData?.name || email}`,
+        description: `Logged in as ${userData?.name || phone}`,
       })
 
       if (userData?.is_admin) {
@@ -73,19 +79,19 @@ export default function LoginPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Enter your credentials to access your account
+              Enter your phone number and password to access your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="phone"
+                  type="tel"
+                  placeholder="+254 712345678"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   required
                   className="bg-background/50"
                 />

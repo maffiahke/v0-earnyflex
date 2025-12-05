@@ -14,7 +14,6 @@ import Link from "next/link"
 
 export default function RegisterPage() {
   const [phone, setPhone] = useState("")
-  const [email, setEmail] = useState("") // Added email field
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [fundPassword, setFundPassword] = useState("")
@@ -92,12 +91,8 @@ export default function RegisterPage() {
         throw new Error("Invalid invitation code. Please enter a valid code or leave it empty.")
       }
 
-      if (!phone.match(/^\+?254[0-9]{9}$/)) {
+      if (!phone || !phone.match(/^\+?254[0-9]{9}$/)) {
         throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
-      }
-
-      if (!email || !email.includes("@")) {
-        throw new Error("Please enter a valid email address")
       }
 
       if (fundPassword.length < 4 || !/^\d+$/.test(fundPassword)) {
@@ -106,8 +101,10 @@ export default function RegisterPage() {
 
       const supabase = createClient()
 
+      const emailFromPhone = `${phone.replace(/\+/g, "")}@earnyflex.app`
+
       const { data: authData, error } = await supabase.auth.signUp({
-        email, // Using actual email instead of generated one
+        email: emailFromPhone,
         password,
         options: {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
@@ -126,7 +123,7 @@ export default function RegisterPage() {
         title: "Account created successfully!",
         description: referrerName
           ? `Welcome ${username}! You were referred by ${referrerName}.`
-          : `Welcome ${username}!`,
+          : `Welcome ${username}! You can now login.`,
       })
 
       router.push("/auth/login")
@@ -162,36 +159,21 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-1">Sign Up</h1>
-          <p className="text-sm text-muted-foreground">Register Using Your Invitation Code</p>
+          <p className="text-sm text-muted-foreground">Register Using Your Phone Number</p>
         </div>
 
         <div className="glass-card border-border/50 rounded-lg p-5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="phone" className="text-foreground text-sm font-medium mb-1.5 block">
-                Phone Number
+                Phone Number <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+254 Phone number"
+                placeholder="+254 712345678"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                required
-                className="h-12 rounded-xl bg-background/50 text-base"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="email" className="text-foreground text-sm font-medium mb-1.5 block">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="h-12 rounded-xl bg-background/50 text-base"
               />
@@ -245,7 +227,7 @@ export default function RegisterPage() {
                 <Input
                   id="fundPassword"
                   type={showFundPassword ? "text" : "password"}
-                  placeholder="Fund Password"
+                  placeholder="Fund Password (4+ digits)"
                   value={fundPassword}
                   onChange={(e) => setFundPassword(e.target.value)}
                   required
