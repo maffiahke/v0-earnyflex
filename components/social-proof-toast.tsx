@@ -9,7 +9,7 @@ import { useAppSettings } from "@/lib/hooks/use-app-settings"
 export function SocialProofToast() {
   const [show, setShow] = useState(false)
   const [message, setMessage] = useState({ name: "", action: "" })
-  const { socialProofSettings, appSettings } = useAppSettings()
+  const { socialProofSettings } = useAppSettings()
 
   useEffect(() => {
     initAudio()
@@ -25,20 +25,21 @@ export function SocialProofToast() {
       const randomCounty = counties[Math.floor(Math.random() * counties.length)]
       const fullName = `${randomName} from ${randomCounty}`
 
+      const activationAmounts = [1300, 3000, 10000]
+      const randomActivationAmount = activationAmounts[Math.floor(Math.random() * activationAmounts.length)]
+
+      // Generate random withdrawal amount between 250 and 100,000
+      const withdrawalAmount = Math.floor(Math.random() * (100000 - 250 + 1)) + 250
+
       const earningMessages = [
-        "just earned KSh 30 from music",
-        "just earned KSh 30 from trivia",
-        `just earned KSh ${appSettings.referralBonus} referral bonus`,
-        "just activated their account with KSh 500",
-        "just activated their account with KSh 1000",
-        "just activated their account with KSh 2500",
+        `just withdrew KSh ${withdrawalAmount.toLocaleString()}`,
+        `just activated their account with KSh ${randomActivationAmount.toLocaleString()}`,
       ]
 
       const randomAction = earningMessages[Math.floor(Math.random() * earningMessages.length)]
 
       setMessage({ name: fullName, action: randomAction })
       setShow(true)
-      console.log("[v0] Showing social proof toast")
       playSound("notification")
 
       setTimeout(() => setShow(false), 4000)
@@ -52,7 +53,7 @@ export function SocialProofToast() {
       clearTimeout(initialTimeout)
       clearInterval(interval)
     }
-  }, [socialProofSettings, appSettings])
+  }, [socialProofSettings])
 
   return (
     <AnimatePresence>
