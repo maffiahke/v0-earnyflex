@@ -337,7 +337,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold">Listen to Music</h3>
-                    <p className="text-sm text-muted-foreground">Earn up to KSh 30</p>
+                    <p className="text-sm text-muted-foreground">Earn from KSh 35</p>
                   </div>
                 </div>
               </Card>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold">Answer Trivia</h3>
-                    <p className="text-sm text-muted-foreground">Earn KSh 30 per question</p>
+                    <p className="text-sm text-muted-foreground">Earn From KSh 35 per question</p>
                   </div>
                 </div>
               </Card>
