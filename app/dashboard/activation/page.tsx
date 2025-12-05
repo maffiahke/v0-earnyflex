@@ -55,11 +55,11 @@ export default function ActivationPage() {
     const pkg = packages.find((p) => p.id === packageId)
     if (!pkg) return
 
-    const depositedFunds = user.deposited_balance || 0
-    if (depositedFunds < Number(pkg.price)) {
+    const walletBalance = user.wallet_balance || 0
+    if (walletBalance < Number(pkg.price)) {
       toast({
-        title: "Insufficient Deposited Balance",
-        description: `You need KSh ${Number(pkg.price) - depositedFunds} more in deposited funds. Earned money cannot be used for activation.`,
+        title: "Insufficient Balance",
+        description: `You need KSh ${(Number(pkg.price) - walletBalance).toLocaleString()} more. Please deposit funds to continue.`,
         variant: "destructive",
       })
       router.push("/dashboard/wallet")
@@ -84,8 +84,8 @@ export default function ActivationPage() {
           is_activated: true,
           active_package_id: packageId,
           package_expiry_date: expiryDate.toISOString(),
-          deposited_balance: depositedFunds - Number(pkg.price),
-          wallet_balance: (user.wallet_balance || 0) - Number(pkg.price),
+          wallet_balance: walletBalance - Number(pkg.price),
+          package_activated_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", authUser.id)
@@ -192,9 +192,9 @@ export default function ActivationPage() {
                     </Button>
 
                     <p className="text-xs text-center text-muted-foreground mt-4">
-                      {(user.deposited_balance || 0) >= Number(pkg.price)
-                        ? "Sufficient deposited balance"
-                        : `Need KSh ${(Number(pkg.price) - (user.deposited_balance || 0)).toLocaleString()} more in deposited funds`}
+                      {(user.wallet_balance || 0) >= Number(pkg.price)
+                        ? "Sufficient wallet balance"
+                        : `Need KSh ${(Number(pkg.price) - (user.wallet_balance || 0)).toLocaleString()} more`}
                     </p>
                   </Card>
                 </motion.div>
@@ -282,9 +282,9 @@ export default function ActivationPage() {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground mt-4">
-                  {(user.deposited_balance || 0) >= Number(pkg.price)
-                    ? "Sufficient deposited balance"
-                    : `Need KSh ${(Number(pkg.price) - (user.deposited_balance || 0)).toLocaleString()} more in deposited funds`}
+                  {(user.wallet_balance || 0) >= Number(pkg.price)
+                    ? "Sufficient wallet balance"
+                    : `Need KSh ${(Number(pkg.price) - (user.wallet_balance || 0)).toLocaleString()} more`}
                 </p>
               </Card>
             </motion.div>
