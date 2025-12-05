@@ -153,13 +153,11 @@ export default function DashboardPage() {
                   Wishing you a festive season filled with joy and prosperity!
                 </p>
               </div>
-              <div className="w-24 h-24 flex-shrink-0">
-                <div
-                  className="tenor-gif-embed"
-                  data-postid="23647303"
-                  data-share-method="host"
-                  data-aspect-ratio="0.746875"
-                  data-width="100%"
+              <div className="w-24 h-24 flex-shrink-0 relative">
+                <img
+                  src="https://media.tenor.com/gztvqIy6TNIAAAAM/christmas-christmas-tree.gif"
+                  alt="Christmas Tree"
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
@@ -375,24 +373,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      <script
-        type="text/javascript"
-        async
-        src="https://tenor.com/embed.js"
-        dangerouslySetInnerHTML={{
-          __html: `
-          (function() {
-            if (window.tenor_embed_loaded) return;
-            window.tenor_embed_loaded = true;
-            var script = document.createElement('script');
-            script.src = 'https://tenor.com/embed.js';
-            script.async = true;
-            document.body.appendChild(script);
-          })();
-        `,
-        }}
-      />
     </DashboardLayout>
   )
 }
