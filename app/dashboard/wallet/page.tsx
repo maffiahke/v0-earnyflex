@@ -32,7 +32,7 @@ export default function WalletPage() {
   const [processing, setProcessing] = useState(false)
   const [showPaybillInstructions, setShowPaybillInstructions] = useState(false)
 
-  const PACKAGE_AMOUNTS = [1300, 3000, 7000]
+  const PACKAGE_AMOUNTS = [1300, 3000, 10000]
 
   useEffect(() => {
     loadUser()
@@ -364,7 +364,7 @@ export default function WalletPage() {
                     <Input
                       id="phone-number"
                       type="tel"
-                      placeholder="+254712345678 or 0712345678"
+                      placeholder=" 0712345678"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className="bg-background/50"
