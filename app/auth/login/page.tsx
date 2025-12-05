@@ -26,13 +26,14 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      if (!phone.match(/^\+?254[0-9]{9}$/)) {
-        throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
+      if (!phone.match(/^07[0-9]{8}$/)) {
+        throw new Error("Please enter a valid phone number (07XXXXXXXX)")
       }
 
       const supabase = createClient()
 
-      const emailFromPhone = `${phone.replace(/\+/g, "")}@earnyflex.app`
+      const phoneWith254 = phone.replace(/^0/, "254")
+      const emailFromPhone = `${phoneWith254}@earnyflex.app`
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: emailFromPhone,
@@ -89,7 +90,7 @@ export default function LoginPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+254 712345678"
+                  placeholder="0712345678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required

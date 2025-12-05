@@ -91,8 +91,8 @@ export default function RegisterPage() {
         throw new Error("Invalid invitation code. Please enter a valid code or leave it empty.")
       }
 
-      if (!phone || !phone.match(/^\+?254[0-9]{9}$/)) {
-        throw new Error("Please enter a valid phone number (254XXXXXXXXX)")
+      if (!phone || !phone.match(/^07[0-9]{8}$/)) {
+        throw new Error("Please enter a valid phone number (07XXXXXXXX)")
       }
 
       if (fundPassword.length < 4 || !/^\d+$/.test(fundPassword)) {
@@ -101,7 +101,8 @@ export default function RegisterPage() {
 
       const supabase = createClient()
 
-      const emailFromPhone = `${phone.replace(/\+/g, "")}@earnyflex.app`
+      const phoneWith254 = phone.replace(/^0/, "254")
+      const emailFromPhone = `${phoneWith254}@earnyflex.app`
 
       const { data: authData, error } = await supabase.auth.signUp({
         email: emailFromPhone,
@@ -110,7 +111,7 @@ export default function RegisterPage() {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
           data: {
             name: username,
-            phone,
+            phone: phoneWith254,
             fund_password: fundPassword,
             ...(referrerId && { referred_by: referrerId }),
           },
@@ -171,7 +172,7 @@ export default function RegisterPage() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+254 712345678"
+                placeholder="0712345678"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required

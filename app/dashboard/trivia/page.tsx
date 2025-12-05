@@ -11,9 +11,7 @@ import { Brain, CheckCircle, XCircle, Lock } from "lucide-react"
 import { motion } from "framer-motion"
 import confetti from "canvas-confetti"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { getUserProfile, getTodayTriviaCount, completeTask } from "@/lib/supabase/queries"
-
-const DAILY_TRIVIA_LIMIT = 2
+import { getUserProfile, completeTask } from "@/lib/supabase/queries"
 
 export default function TriviaPage() {
   const router = useRouter()
@@ -26,7 +24,6 @@ export default function TriviaPage() {
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [todayCount, setTodayCount] = useState(0)
   const [hasValidSubscription, setHasValidSubscription] = useState(false)
 
   useEffect(() => {
@@ -65,41 +62,33 @@ export default function TriviaPage() {
 
       if (!hasActiveSubscription) {
         setQuestions([])
-        setTodayCount(0)
         initAudio()
         setLoading(false)
         return
       }
 
-      const [allQuestions, count] = await Promise.all([
-        (async () => {
-          const { data, error } = await supabase.from("trivia_questions").select("*").eq("is_active", true)
+      const { data: allQuestions, error } = await supabase.from("trivia_questions").select("*").eq("is_active", true)
 
-          if (error) throw error
+      if (error) throw error
 
-          // Get completed question IDs
-          const { data: completions } = await supabase
-            .from("user_task_completions")
-            .select("task_id")
-            .eq("user_id", authUser.id)
-            .eq("task_type", "trivia")
-            .gte("completed_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+      const today = new Date().toISOString().split("T")[0]
+      const { data: completions } = await supabase
+        .from("user_task_completions")
+        .select("task_id")
+        .eq("user_id", authUser.id)
+        .eq("task_type", "trivia")
+        .gte("completed_at", `${today}T00:00:00`)
 
-          const completedIds = new Set(completions?.map((c) => c.task_id) || [])
+      const completedIds = new Set(completions?.map((c) => c.task_id) || [])
 
-          // Filter and mark locked
-          return (data || [])
-            .filter((q) => !completedIds.has(q.id))
-            .map((q) => ({
-              ...q,
-              isLocked: q.package_id && q.package_id !== profile.active_package_id,
-            }))
-        })(),
-        getTodayTriviaCount(authUser.id),
-      ])
+      const questionsWithStatus = (allQuestions || [])
+        .filter((q) => !completedIds.has(q.id))
+        .map((q) => ({
+          ...q,
+          isLocked: q.package_id && q.package_id !== profile.active_package_id,
+        }))
 
-      setQuestions(allQuestions)
-      setTodayCount(count)
+      setQuestions(questionsWithStatus)
 
       initAudio()
     } catch (error) {
@@ -167,8 +156,6 @@ export default function TriviaPage() {
           description: `You earned KSh ${currentQuestion.reward}`,
         })
 
-        setTodayCount((prev) => prev + 1)
-
         const profile = await getUserProfile(authUser.id)
         setUser(profile)
       } catch (error) {
@@ -207,17 +194,13 @@ export default function TriviaPage() {
 
   if (!user) return null
 
-  const dailyLimitReached = todayCount >= DAILY_TRIVIA_LIMIT
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Trivia Questions</h1>
-            <p className="text-muted-foreground">
-              Answer correctly to earn money ({todayCount}/{DAILY_TRIVIA_LIMIT} completed today)
-            </p>
+            <p className="text-muted-foreground">Answer correctly to earn money (each question once per day)</p>
           </div>
         </div>
 
@@ -237,18 +220,6 @@ export default function TriviaPage() {
             <Button onClick={() => router.push("/dashboard/activation")} className="bg-accent hover:bg-accent/90">
               {user?.active_package_id ? "Renew Subscription" : "View Packages"}
             </Button>
-          </Card>
-        ) : dailyLimitReached && !currentQuestion ? (
-          <Card className="glass-card p-6 border-accent/50">
-            <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-accent" />
-              <div>
-                <p className="font-semibold">Daily Limit Reached</p>
-                <p className="text-sm text-muted-foreground">
-                  You've completed {DAILY_TRIVIA_LIMIT} trivias today. Come back tomorrow to earn more!
-                </p>
-              </div>
-            </div>
           </Card>
         ) : null}
 
@@ -332,7 +303,7 @@ export default function TriviaPage() {
               </div>
             </Card>
           </motion.div>
-        ) : questions.length > 0 && !dailyLimitReached ? (
+        ) : questions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {questions.map((question) => (
               <motion.div
@@ -368,13 +339,15 @@ export default function TriviaPage() {
               </motion.div>
             ))}
           </div>
-        ) : !dailyLimitReached ? (
+        ) : (
           <Card className="glass-card p-12 text-center">
             <Brain className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Questions Available</h3>
-            <p className="text-muted-foreground">Check back later for more trivia questions</p>
+            <h3 className="text-xl font-semibold mb-2">All Questions Completed!</h3>
+            <p className="text-muted-foreground">
+              You've completed all available trivia questions for today. Check back tomorrow for more!
+            </p>
           </Card>
-        ) : null}
+        )}
       </div>
     </DashboardLayout>
   )

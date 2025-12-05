@@ -12,7 +12,7 @@ import { Play, Pause, Sparkles, Music, Lock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { canDoTask, completeTask, getUserProfile } from "@/lib/supabase/queries"
+import { completeTask, getUserProfile } from "@/lib/supabase/queries"
 
 export default function MusicTasksPage() {
   const router = useRouter()
@@ -26,7 +26,6 @@ export default function MusicTasksPage() {
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [canDoToday, setCanDoToday] = useState(false)
   const [hasValidSubscription, setHasValidSubscription] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -75,26 +74,34 @@ export default function MusicTasksPage() {
       setHasValidSubscription(hasActiveSubscription)
 
       if (!hasActiveSubscription) {
-        setCanDoToday(false)
         setTasks([])
         initAudio()
         setLoading(false)
         return
       }
 
-      const canDo = await canDoTask(authUser.id, "music")
-      setCanDoToday(canDo)
+      const today = new Date().toISOString().split("T")[0]
+      const { data: completions } = await supabase
+        .from("user_task_completions")
+        .select("task_id")
+        .eq("user_id", authUser.id)
+        .eq("task_type", "music")
+        .gte("completed_at", `${today}T00:00:00`)
+
+      const completedIds = new Set(completions?.map((c) => c.task_id) || [])
 
       const { data: allTasks, error } = await supabase.from("music_tasks").select("*").eq("is_active", true)
 
       if (error) throw error
 
-      const tasksWithLockStatus = (allTasks || []).map((task) => ({
-        ...task,
-        isLocked: task.package_id && task.package_id !== profile.active_package_id,
-      }))
+      const tasksWithLockStatus = (allTasks || [])
+        .filter((task) => !completedIds.has(task.id))
+        .map((task) => ({
+          ...task,
+          isLocked: task.package_id && task.package_id !== profile.active_package_id,
+        }))
 
-      setTasks(canDo ? tasksWithLockStatus : [])
+      setTasks(tasksWithLockStatus)
       initAudio()
     } catch (error) {
       console.error("Error loading data:", error)
@@ -107,18 +114,6 @@ export default function MusicTasksPage() {
       setLoading(false)
     }
   }
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  if (!user) return null
 
   const startTask = (task: any) => {
     if (task.isLocked) {
@@ -155,7 +150,6 @@ export default function MusicTasksPage() {
       audioRef.current = new Audio(encodedUrl)
       audioRef.current.crossOrigin = "anonymous"
 
-      // Silently handle audio errors - task still works without audio
       audioRef.current.addEventListener("error", () => {
         console.log("[v0] Audio file not available, continuing with silent playback")
       })
@@ -243,9 +237,6 @@ export default function MusicTasksPage() {
         description: `You earned KSh ${task.reward}`,
       })
 
-      setCanDoToday(false)
-      setTasks([])
-
       const profile = await getUserProfile(authUser.id)
       setUser(profile)
     } catch (error) {
@@ -279,7 +270,7 @@ export default function MusicTasksPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Music Tasks</h1>
-          <p className="text-muted-foreground">Listen to music and earn money (once per day)</p>
+          <p className="text-muted-foreground">Listen to music and earn money (each task once per day)</p>
         </div>
 
         {!hasValidSubscription ? (
@@ -300,14 +291,14 @@ export default function MusicTasksPage() {
             </Button>
           </Card>
         ) : (
-          !canDoToday &&
-          !currentTask && (
+          !currentTask &&
+          tasks.length === 0 && (
             <Card className="glass-card p-8 text-center">
               <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Come Back Tomorrow!</h2>
-              <p className="text-muted-foreground mb-4">You've completed your music task for today.</p>
+              <h2 className="text-2xl font-bold mb-2">All Tasks Completed!</h2>
+              <p className="text-muted-foreground mb-4">You've completed all available music tasks for today.</p>
               <p className="text-sm text-muted-foreground">
                 Music tasks refresh daily. Check back tomorrow for more earning opportunities!
               </p>
@@ -351,7 +342,7 @@ export default function MusicTasksPage() {
               </div>
             </Card>
           </motion.div>
-        ) : canDoToday ? (
+        ) : tasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {tasks.map((task) => (
               <motion.div

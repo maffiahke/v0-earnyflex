@@ -155,25 +155,8 @@ export async function getAppSettings() {
   return settings
 }
 
-export async function canDoTask(userId: string, taskType: "music" | "trivia") {
-  const supabase = createBrowserClient()
-  const { data: user } = await supabase
-    .from("users")
-    .select(taskType === "music" ? "last_music_task_date" : "last_trivia_task_date")
-    .eq("id", userId)
-    .single()
-
-  if (!user) return false
-
-  const lastTaskDate = taskType === "music" ? user.last_music_task_date : user.last_trivia_task_date
-  const today = new Date().toISOString().split("T")[0]
-
-  return !lastTaskDate || lastTaskDate !== today
-}
-
 export async function completeTask(userId: string, reward: number, taskType: "music" | "trivia", taskId?: string) {
   const supabase = createBrowserClient()
-  const today = new Date().toISOString().split("T")[0]
 
   // First get current user data
   const { data: user, error: fetchError } = await supabase
@@ -184,15 +167,12 @@ export async function completeTask(userId: string, reward: number, taskType: "mu
 
   if (fetchError) throw fetchError
 
-  const updateField = taskType === "music" ? "last_music_task_date" : "last_trivia_task_date"
-
   // Update with calculated values
   const { error } = await supabase
     .from("users")
     .update({
       wallet_balance: (user.wallet_balance || 0) + reward,
       total_earnings: (user.total_earnings || 0) + reward,
-      [updateField]: today,
     })
     .eq("id", userId)
 
