@@ -61,7 +61,15 @@ export default function MusicTasksPage() {
 
       const hasActiveSubscription =
         profile.active_package_id &&
+        profile.active_package_id !== null &&
         (!profile.package_expiry_date || new Date(profile.package_expiry_date) > new Date())
+
+      console.log("[v0] Subscription check:", {
+        hasPackage: !!profile.active_package_id,
+        expiryDate: profile.package_expiry_date,
+        isExpired: profile.package_expiry_date ? new Date(profile.package_expiry_date) < new Date() : false,
+        hasActiveSubscription,
+      })
 
       if (!hasActiveSubscription) {
         setCanDoToday(false)
@@ -84,7 +92,6 @@ export default function MusicTasksPage() {
       }))
 
       setTasks(canDo ? tasksWithLockStatus : [])
-
       initAudio()
     } catch (error) {
       console.error("Error loading data:", error)
@@ -272,22 +279,28 @@ export default function MusicTasksPage() {
           <p className="text-muted-foreground">Listen to music and earn money (once per day)</p>
         </div>
 
-        {user &&
-        (!user.active_package_id || (user.package_expiry_date && new Date(user.package_expiry_date) < new Date())) ? (
+        {user && !user.active_package_id ? (
           <Card className="glass-card p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
               <Lock className="w-8 h-8 text-accent" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Subscription Required</h2>
+            <p className="text-muted-foreground mb-4">You need an active subscription to access music tasks.</p>
+            <Button onClick={() => router.push("/dashboard/activation")} className="bg-accent hover:bg-accent/90">
+              View Packages
+            </Button>
+          </Card>
+        ) : user && user.package_expiry_date && new Date(user.package_expiry_date) < new Date() ? (
+          <Card className="glass-card p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-accent" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Subscription Expired</h2>
             <p className="text-muted-foreground mb-4">
-              {user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
-                ? "Your subscription has expired. Please renew to continue earning."
-                : "You need an active subscription to access music tasks."}
+              Your subscription has expired. Please renew to continue earning.
             </p>
             <Button onClick={() => router.push("/dashboard/activation")} className="bg-accent hover:bg-accent/90">
-              {user.package_expiry_date && new Date(user.package_expiry_date) < new Date()
-                ? "Renew Subscription"
-                : "View Packages"}
+              Renew Subscription
             </Button>
           </Card>
         ) : (
