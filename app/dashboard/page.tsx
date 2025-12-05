@@ -138,6 +138,34 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+        >
+          <Card className="glass-card p-6 border-green-500/50 bg-gradient-to-r from-green-500/10 via-red-500/10 to-green-500/10 overflow-hidden relative">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-red-400 bg-clip-text text-transparent mb-1">
+                  🎄 Happy Holidays! 🎁
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Wishing you a festive season filled with joy and prosperity!
+                </p>
+              </div>
+              <div className="w-24 h-24 flex-shrink-0">
+                <div
+                  className="tenor-gif-embed"
+                  data-postid="23647303"
+                  data-share-method="host"
+                  data-aspect-ratio="0.746875"
+                  data-width="100%"
+                />
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
         <div>
           <h1 className="text-3xl font-bold">Welcome back, {user.name}!</h1>
           <p className="text-muted-foreground">Here's your earning overview</p>
@@ -223,7 +251,9 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Music Earnings</p>
-                  <p className="text-2xl font-bold text-primary">KSh {Number(musicEarnings).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {appSettings.currencySymbol} {Number(musicEarnings).toLocaleString()}
+                  </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
                   <Music className="w-6 h-6 text-primary" />
@@ -237,7 +267,9 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Trivia Earnings</p>
-                  <p className="text-2xl font-bold text-success">KSh {Number(triviaEarnings).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-success">
+                    {appSettings.currencySymbol} {Number(triviaEarnings).toLocaleString()}
+                  </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
                   <Brain className="w-6 h-6 text-success" />
@@ -343,6 +375,24 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <script
+        type="text/javascript"
+        async
+        src="https://tenor.com/embed.js"
+        dangerouslySetInnerHTML={{
+          __html: `
+          (function() {
+            if (window.tenor_embed_loaded) return;
+            window.tenor_embed_loaded = true;
+            var script = document.createElement('script');
+            script.src = 'https://tenor.com/embed.js';
+            script.async = true;
+            document.body.appendChild(script);
+          })();
+        `,
+        }}
+      />
     </DashboardLayout>
   )
 }
