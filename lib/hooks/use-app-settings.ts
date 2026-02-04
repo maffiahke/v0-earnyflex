@@ -162,29 +162,36 @@ export function useAppSettings() {
       const { data, error } = await supabase.from("app_settings").select("*")
 
       if (error) {
-        console.error("[v0] Error loading settings:", error)
+        console.error("[v0] Error loading settings from database:", error.message)
+        setLoading(false)
         return
       }
 
-      if (data) {
+      if (data && data.length > 0) {
         data.forEach((setting: any) => {
-          if (setting.key === "appSettings") {
-            setAppSettings(setting.value)
-          } else if (setting.key === "paymentMethods") {
-            setPaymentMethods(setting.value)
-          } else if (setting.key === "socialProofSettings") {
-            setSocialProofSettings(setting.value)
-          } else if (setting.key === "mpesaConfig") {
-            setMpesaConfig(setting.value)
-          } else if (setting.key === "lipanaConfig") {
-            setLipanaConfig(setting.value)
-          } else if (setting.key === "paymentMethodsEnabled") {
-            setPaymentMethodsEnabled(setting.value)
+          try {
+            const value = typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value
+
+            if (setting.key === "appSettings" && value) {
+              setAppSettings(value)
+            } else if (setting.key === "paymentMethods" && value) {
+              setPaymentMethods(value)
+            } else if (setting.key === "socialProofSettings" && value) {
+              setSocialProofSettings(value)
+            } else if (setting.key === "mpesaConfig" && value) {
+              setMpesaConfig(value)
+            } else if (setting.key === "lipanaConfig" && value) {
+              setLipanaConfig(value)
+            } else if (setting.key === "paymentMethodsEnabled" && value) {
+              setPaymentMethodsEnabled(value)
+            }
+          } catch (parseErr) {
+            console.error(`[v0] Error parsing setting ${setting.key}:`, parseErr)
           }
         })
       }
     } catch (err) {
-      console.error("[v0] Error:", err)
+      console.error("[v0] Unexpected error loading settings:", err)
     } finally {
       setLoading(false)
     }
